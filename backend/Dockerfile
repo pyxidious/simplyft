@@ -11,6 +11,6 @@ COPY --from=build /workspace/build/libs/*.jar app.jar
 
 EXPOSE 8081
 
-HEALTHCHECK --interval=15s --timeout=5s --retries=10 CMD wget -qO- http://localhost:8081/api/health || exit 1
+HEALTHCHECK --interval=15s --timeout=5s --retries=10 CMD wget -qO- http://127.0.0.1:8081/api/health || exit 1
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
