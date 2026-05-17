@@ -1,47 +1,96 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AuthMockService } from '../../../core/services/auth-mock.service';
-import { PlantMockService } from '../../../core/services/plant-mock.service';
 import { SurveyMockService } from '../../../core/services/survey-mock.service';
-import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
+import { FieldHomeActivity, FieldHomeService } from '../../../core/services/field-home.service';
 
 @Component({
   selector: 'app-field-home',
   standalone: true,
-  imports: [CommonModule, RouterLink, StatusBadgeComponent],
+  imports: [CommonModule, RouterLink],
   template: `
-    <section class="field-screen">
-      <header class="mobile-hero">
-        <div>
-          <p class="muted">Buon lavoro</p>
-          <h1>{{ auth.currentUser()?.name }}</h1>
-          <app-status-badge label="Online" tone="success" />
-        </div>
-        <a class="btn primary" routerLink="/field/nuovo-rilievo">Nuovo Rilievo</a>
+    <section class="technician-home">
+      <header class="tech-topbar">
+        <a class="tech-brand" routerLink="/field/home">Simplyft</a>
+        <a class="sync-button" routerLink="/settings" aria-label="Sincronizzazione">
+          <span class="sync-glyph">↕</span>
+        </a>
       </header>
 
-      <div class="handoff-confirm" *ngIf="surveys.justSent()">
-        Rilievo inviato al back-office. La dashboard commerciale e stata aggiornata.
-      </div>
+      <main class="tech-content">
+        <section class="welcome-row">
+          <div>
+            <p>Bentornato, tecnico</p>
+            <h1>{{ home.home().technician.name }}</h1>
+          </div>
+          <div class="online-pill" [class.offline]="!home.home().technician.online">
+            <span></span>
+            Stato: {{ home.home().technician.online ? 'Online' : 'Offline' }}
+          </div>
+        </section>
 
-      <div class="mobile-stats">
-        <article class="card"><span>Rilievi in corso</span><b>3</b></article>
-        <article class="card"><span>Da completare</span><b>2</b></article>
-      </div>
-
-      <section class="section-head"><h2>Ultimi interventi</h2><a routerLink="/field/impianti">Vedi tutti</a></section>
-      <article class="plant-mobile-card" *ngFor="let plant of plants.plants().slice(0, 3)">
-        <div>
-          <b>{{ plant.customer }}</b>
-          <p>{{ plant.address }}</p>
-          <small>{{ plant.lastSurvey }}</small>
+        <div class="handoff-confirm tech-confirm" *ngIf="surveys.justSent()">
+          Rilievo inviato al back-office. La dashboard commerciale e stata aggiornata.
         </div>
-        <a class="btn ghost" [routerLink]="['/field/impianto', plant.id]">Apri</a>
-      </article>
+
+        <a class="primary-survey-card" routerLink="/field/nuovo-rilievo">
+          <span class="survey-icon">
+            <span class="checkmark">✓</span>
+          </span>
+          <strong>Nuovo Rilievo</strong>
+          <small>Avvia nuovo rilievo tecnico</small>
+        </a>
+
+        <section class="quick-actions" aria-label="Azioni rapide">
+          <a class="quick-card" routerLink="/field/impianti">
+            <span class="quick-icon parts-icon"></span>
+            <strong>Catalogo ricambi</strong>
+          </a>
+          <a class="quick-card" routerLink="/settings">
+            <span class="quick-icon sync-icon">↔</span>
+            <strong>Stato sincronizzazione</strong>
+          </a>
+        </section>
+
+        <section class="assigned-section">
+          <div class="tech-section-head">
+            <h2>Attività assegnate</h2>
+            <a routerLink="/field/impianti">Visualizza tutto</a>
+          </div>
+
+          <a class="assigned-card" *ngFor="let activity of home.home().assignedActivities" routerLink="/field/impianti">
+            <span class="activity-icon" [class.safety]="activity.type === 'safety'">
+              {{ iconFor(activity) }}
+            </span>
+            <span class="activity-copy">
+              <b>#{{ activity.code }}</b>
+              <strong>{{ activity.title }}</strong>
+              <small>{{ activity.location }}</small>
+            </span>
+            <span class="chevron">›</span>
+          </a>
+        </section>
+
+        <article class="system-notice">
+          <div>
+            <p><span>i</span> Notifica di sistema</p>
+            <h2>{{ home.home().notification.title }}</h2>
+            <small>{{ home.home().notification.message }}</small>
+          </div>
+          <span class="notice-watermark">✓</span>
+        </article>
+      </main>
     </section>
   `
 })
-export class FieldHomeComponent {
-  constructor(public auth: AuthMockService, public plants: PlantMockService, public surveys: SurveyMockService) {}
+export class FieldHomeComponent implements OnInit {
+  constructor(public home: FieldHomeService, public surveys: SurveyMockService) {}
+
+  ngOnInit(): void {
+    this.home.load();
+  }
+
+  iconFor(activity: FieldHomeActivity): string {
+    return activity.type === 'safety' ? '▣' : '♙';
+  }
 }

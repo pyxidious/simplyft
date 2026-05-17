@@ -12,6 +12,9 @@ spring:
     hibernate:
       ddl-auto: none
     open-in-view: false
+  sql:
+    init:
+      mode: always
 
 app:
   ai-service-url: ${AI_SERVICE_URL:http://localhost:8000}

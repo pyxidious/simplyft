@@ -6,6 +6,7 @@ import { FieldHomeComponent } from './features/field/field-home/field-home.compo
 import { PlantDetailComponent } from './features/field/plant-detail/plant-detail.component';
 import { PlantsListComponent } from './features/field/plants-list/plants-list.component';
 import { NewSurveyComponent } from './features/field/new-survey/new-survey.component';
+import { InspectionsListComponent } from './features/field/inspections-list/inspections-list.component';
 import { ReviewConfirmComponent } from './features/field/review-confirm/review-confirm.component';
 import { OfficeDashboardComponent } from './features/office/office-dashboard/office-dashboard.component';
 import { QuotesListComponent } from './features/office/quotes-list/quotes-list.component';
@@ -24,7 +25,9 @@ export const routes: Routes = [
       { path: 'home', component: FieldHomeComponent },
       { path: 'impianti', component: PlantsListComponent },
       { path: 'impianto/:id', component: PlantDetailComponent },
+      { path: 'rilievi', component: InspectionsListComponent },
       { path: 'nuovo-rilievo', component: NewSurveyComponent },
+      { path: 'profilo', component: SettingsComponent },
       { path: 'verifica-conferma', component: ReviewConfirmComponent }
     ]
   },

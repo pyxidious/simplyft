@@ -64,6 +64,7 @@ Reverse proxy: http://localhost:8080
 Backend:       http://localhost:8081/api/health
 AI service:    http://localhost:8000/health
 Whisper:       http://localhost:8001/health
+Ollama:        http://localhost:11435
 INFO
 
 if [ "$follow_logs" = true ]; then

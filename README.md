@@ -108,7 +108,7 @@ docker compose logs -f
 - AI analyze: `POST http://localhost:8000/analyze`
 - Whisper health: `http://localhost:8001/health`
 - Whisper transcribe: `POST http://localhost:8001/transcribe`
-- Ollama: `http://localhost:11434`
+- Ollama: `http://localhost:11435`
 
 Attraverso il reverse proxy nginx:
 
@@ -125,7 +125,7 @@ Porte host predefinite:
 - `BACKEND_PORT=8081`
 - `AI_SERVICE_PORT=8000`
 - `WHISPER_SERVICE_PORT=8001`
-- `OLLAMA_PORT=11434`
+- `OLLAMA_PORT=11435`
 - `POSTGRES_PORT=5432`
 - `CONTEXT_POSTGRES_PORT=5433`
 - `NGINX_PORT=8080`

@@ -26,6 +26,68 @@ export interface Attachment {
   validated: boolean;
 }
 
+export interface InspectionAttachment {
+  id?: string;
+  fileName: string;
+  url?: string;
+  contentType?: string;
+}
+
+export interface CustomerPlant {
+  id: string;
+  customerName: string;
+  plantCode?: string;
+  serial?: string;
+  address?: string;
+  type?: string;
+}
+
+export interface CatalogItem {
+  id: string;
+  name: string;
+  categoryName?: string;
+  shortDescription?: string;
+  standardLaborHours?: number;
+  listMaterialPrice?: number;
+}
+
+export interface CreateCatalogItemRequest {
+  name: string;
+  category: string;
+  shortDescription?: string;
+}
+
+export interface InspectionItem {
+  id?: string;
+  catalogItemId: string;
+  catalogItemName: string;
+  categoryName?: string;
+  laborHours: number;
+  materialCost: number;
+  photos: InspectionAttachment[];
+  rawNote?: string;
+  transcribedNote?: string;
+  formalizedDescription?: string;
+  pendingOperation?: boolean;
+}
+
+export interface InspectionDraft {
+  id?: string;
+  customerId: string;
+  customerName: string;
+  plantCode?: string;
+  plantAddress?: string;
+  status: 'DRAFT' | 'SUBMITTED';
+  technicianId: string;
+  technicianName: string;
+  items: InspectionItem[];
+  totalLaborHours: number;
+  totalMaterialCost: number;
+  createdAt?: string;
+  updatedAt?: string;
+  submittedAt?: string;
+}
+
 export interface VoiceNote {
   id: string;
   title: string;

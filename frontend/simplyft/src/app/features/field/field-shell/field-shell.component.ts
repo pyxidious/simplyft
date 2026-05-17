@@ -8,11 +8,23 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
   template: `
     <main class="field-shell">
       <router-outlet />
-      <nav class="bottom-nav">
-        <a routerLink="/field/home" routerLinkActive="active">Home</a>
-        <a routerLink="/field/impianti" routerLinkActive="active">Impianti</a>
-        <a routerLink="/field/nuovo-rilievo" routerLinkActive="active">Rilievi</a>
-        <a routerLink="/settings" routerLinkActive="active">Profilo</a>
+      <nav class="bottom-nav mobile-global-nav" aria-label="Navigazione principale">
+        <a routerLink="/field/home" routerLinkActive="active">
+          <span>⌂</span>
+          <small>Home</small>
+        </a>
+        <a routerLink="/field/nuovo-rilievo" routerLinkActive="active">
+          <span>＋</span>
+          <small>Nuovo</small>
+        </a>
+        <a routerLink="/field/rilievi" routerLinkActive="active">
+          <span>▤</span>
+          <small>Rilievi</small>
+        </a>
+        <a routerLink="/field/profilo" routerLinkActive="active">
+          <span>◌</span>
+          <small>Profilo</small>
+        </a>
       </nav>
     </main>
   `

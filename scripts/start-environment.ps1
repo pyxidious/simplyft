@@ -43,6 +43,7 @@ Write-Host "Reverse proxy: http://localhost:8080"
 Write-Host "Backend:       http://localhost:8081/api/health"
 Write-Host "AI service:    http://localhost:8000/health"
 Write-Host "Whisper:       http://localhost:8001/health"
+Write-Host "Ollama:        http://localhost:11435"
 
 if ($FollowLogs) {
     docker compose logs -f
