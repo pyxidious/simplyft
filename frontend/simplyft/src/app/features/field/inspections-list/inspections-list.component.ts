@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AuthMockService } from '../../../core/services/auth-mock.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { InspectionService } from '../../../core/services/inspection.service';
 
 @Component({
@@ -71,8 +71,8 @@ import { InspectionService } from '../../../core/services/inspection.service';
 export class InspectionsListComponent {
   visibleInspections = computed(() => {
     const user = this.auth.currentUser();
-    return this.inspections.listForUser(user?.id ?? '', user?.role ?? 'technician');
+    return this.inspections.listForUser(user?.id ?? '', user?.role ?? 'tecnico');
   });
 
-  constructor(private auth: AuthMockService, private inspections: InspectionService) {}
+  constructor(private auth: AuthService, private inspections: InspectionService) {}
 }

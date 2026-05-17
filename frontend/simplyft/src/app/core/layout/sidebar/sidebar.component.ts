@@ -14,7 +14,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
         <a routerLink="/office/pipeline" routerLinkActive="active">Pipeline</a>
         <a routerLink="/settings" routerLinkActive="active">Impostazioni</a>
       </nav>
-      <div class="sidebar-note">Campo e ufficio sincronizzati con dati mock locali.</div>
+      <div class="sidebar-note">Campo e ufficio sincronizzati tramite API backend.</div>
     </aside>
   `
 })

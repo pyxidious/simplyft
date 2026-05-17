@@ -22,7 +22,7 @@ import { StatusBadgeComponent } from '../../../shared/components/status-badge/st
         <div class="button-row">
           <button class="btn primary">Approva</button>
           <button class="btn secondary">Richiedi integrazione</button>
-          <button class="btn ghost">Genera PDF mock</button>
+          <button class="btn ghost">Genera PDF</button>
           <button class="btn ghost">Invia al cliente</button>
         </div>
       </header>

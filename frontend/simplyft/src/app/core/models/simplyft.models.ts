@@ -1,4 +1,4 @@
-export type UserRole = 'technician' | 'office';
+export type UserRole = 'tecnico' | 'commerciale' | 'amministratore';
 export type PlantStatus = 'complete' | 'incomplete' | 'needs-review';
 export type SurveyStatus = 'draft' | 'sent' | 'review';
 export type PipelineStatus =
@@ -13,6 +13,7 @@ export type PipelineStatus =
 export interface User {
   id: string;
   name: string;
+  email?: string;
   role: UserRole;
   title: string;
   online: boolean;

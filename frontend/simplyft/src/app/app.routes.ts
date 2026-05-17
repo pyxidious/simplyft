@@ -13,6 +13,7 @@ import { QuotesListComponent } from './features/office/quotes-list/quotes-list.c
 import { QuoteDetailComponent } from './features/office/quote-detail/quote-detail.component';
 import { PipelineComponent } from './features/office/pipeline/pipeline.component';
 import { SettingsComponent } from './features/settings/settings.component';
+import { authGuard } from './core/services/auth.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
@@ -20,6 +21,8 @@ export const routes: Routes = [
   {
     path: 'field',
     component: FieldShellComponent,
+    canActivate: [authGuard],
+    data: { roles: ['tecnico', 'amministratore'] },
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: FieldHomeComponent },
@@ -34,6 +37,8 @@ export const routes: Routes = [
   {
     path: 'office',
     component: AppShellComponent,
+    canActivate: [authGuard],
+    data: { roles: ['commerciale', 'amministratore'] },
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       { path: 'dashboard', component: OfficeDashboardComponent },
@@ -42,6 +47,6 @@ export const routes: Routes = [
       { path: 'pipeline', component: PipelineComponent }
     ]
   },
-  { path: 'settings', component: SettingsComponent },
+  { path: 'settings', component: SettingsComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: 'login' }
 ];

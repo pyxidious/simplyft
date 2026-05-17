@@ -1,10 +1,9 @@
 import { Injectable, signal } from '@angular/core';
 import { Survey } from '../models/simplyft.models';
-import { MOCK_SURVEYS } from './mock-data';
 
 @Injectable({ providedIn: 'root' })
 export class SurveyMockService {
-  surveys = signal<Survey[]>(this.restore());
+  surveys = signal<Survey[]>([]);
   justSent = signal(false);
 
   latest(): Survey | undefined {
@@ -34,15 +33,7 @@ export class SurveyMockService {
         { id: 'a-new-2', name: 'Bottoniera cabina.jpg', type: 'photo', url: 'photo', validated: true }
       ]
     };
-    const next = [survey, ...this.surveys()];
-    this.surveys.set(next);
     this.justSent.set(true);
-    localStorage.setItem('simplyft-surveys', JSON.stringify(next));
     return survey;
-  }
-
-  private restore(): Survey[] {
-    const raw = localStorage.getItem('simplyft-surveys');
-    return raw ? JSON.parse(raw) as Survey[] : MOCK_SURVEYS;
   }
 }

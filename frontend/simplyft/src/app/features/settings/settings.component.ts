@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AuthMockService } from '../../core/services/auth-mock.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-settings',
@@ -10,12 +10,12 @@ import { AuthMockService } from '../../core/services/auth-mock.service';
     <section class="office-page settings-page">
       <div class="card">
         <h2>Profilo e impostazioni</h2>
-        <p class="muted">Dark mode attiva, mock data in localStorage, nessuna API reale configurata.</p>
+        <p class="muted">Sessione autenticata collegata al backend. Il localStorage conserva solo il token.</p>
         <div class="info-grid">
           <p><span>Utente</span><b>{{ auth.currentUser()?.name || 'Demo' }}</b></p>
-          <p><span>Ruolo</span><b>{{ auth.currentUser()?.title || 'Prototipo' }}</b></p>
-          <p><span>Stato tecnico</span><b>Online / Offline simulato</b></p>
-          <p><span>Ambiente</span><b>Frontend Angular mock</b></p>
+          <p><span>Ruolo</span><b>{{ auth.currentUser()?.role || 'Non disponibile' }}</b></p>
+          <p><span>Profilo</span><b>{{ auth.currentUser()?.title || 'Non disponibile' }}</b></p>
+          <p><span>Ambiente</span><b>API backend reali</b></p>
         </div>
         <div class="button-row">
           <a class="btn secondary" routerLink="/field/home">App tecnico</a>
@@ -27,5 +27,5 @@ import { AuthMockService } from '../../core/services/auth-mock.service';
   `
 })
 export class SettingsComponent {
-  constructor(public auth: AuthMockService) {}
+  constructor(public auth: AuthService) {}
 }

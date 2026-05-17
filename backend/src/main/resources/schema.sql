@@ -121,3 +121,64 @@ CREATE TABLE IF NOT EXISTS notifiche_sistema (
 
 CREATE UNIQUE INDEX IF NOT EXISTS unique_notifica_titolo_messaggio
     ON notifiche_sistema (titolo, messaggio);
+
+CREATE TABLE IF NOT EXISTS utenti (
+    id BIGSERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    ruolo VARCHAR(30) NOT NULL CHECK (ruolo IN ('tecnico', 'commerciale', 'amministratore')),
+    titolo VARCHAR(255),
+    attivo BOOLEAN DEFAULT TRUE,
+    creato_il TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS auth_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    utente_id BIGINT REFERENCES utenti(id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) UNIQUE NOT NULL,
+    creato_il TIMESTAMPTZ DEFAULT NOW(),
+    scade_il TIMESTAMPTZ NOT NULL,
+    revocato_il TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_auth_tokens_hash ON auth_tokens(token_hash);
+
+CREATE TABLE IF NOT EXISTS rilievi (
+    id BIGSERIAL PRIMARY KEY,
+    cliente_id BIGINT REFERENCES clienti(id),
+    impianto_id BIGINT REFERENCES impianti(id),
+    stato VARCHAR(30) NOT NULL DEFAULT 'DRAFT',
+    tecnico_id BIGINT REFERENCES utenti(id),
+    tecnico_nome VARCHAR(255) NOT NULL,
+    totale_ore_manodopera DECIMAL(10,2) DEFAULT 0,
+    totale_costo_materiale DECIMAL(10,2) DEFAULT 0,
+    creato_il TIMESTAMPTZ DEFAULT NOW(),
+    aggiornato_il TIMESTAMPTZ DEFAULT NOW(),
+    inviato_il TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS rilievi_righe (
+    id BIGSERIAL PRIMARY KEY,
+    rilievo_id BIGINT REFERENCES rilievi(id) ON DELETE CASCADE,
+    articolo_id BIGINT REFERENCES articoli_oggetti(id),
+    nome_articolo VARCHAR(255) NOT NULL,
+    categoria_nome VARCHAR(255),
+    ore_manodopera DECIMAL(10,2) DEFAULT 0,
+    costo_materiale DECIMAL(10,2) DEFAULT 0,
+    nota_grezza TEXT,
+    trascrizione TEXT,
+    descrizione_formalizzata TEXT,
+    creato_il TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS trascrizioni_audio (
+    id BIGSERIAL PRIMARY KEY,
+    rilievo_riga_id BIGINT REFERENCES rilievi_righe(id) ON DELETE SET NULL,
+    nome_file VARCHAR(255),
+    content_type VARCHAR(120),
+    dimensione_byte BIGINT,
+    testo TEXT NOT NULL,
+    creato_da BIGINT REFERENCES utenti(id),
+    creato_il TIMESTAMPTZ DEFAULT NOW()
+);

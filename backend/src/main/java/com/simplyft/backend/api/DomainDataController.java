@@ -12,14 +12,23 @@ import com.simplyft.backend.repository.ImpiantoRepository;
 import com.simplyft.backend.repository.NotificaSistemaRepository;
 import com.simplyft.backend.repository.PreventivoHeaderRepository;
 import com.simplyft.backend.repository.PreventivoRigaRepository;
+import com.simplyft.backend.security.AuthUser;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api")
@@ -33,6 +42,7 @@ public class DomainDataController {
     private final ArticoloOggettoRepository articoloOggettoRepository;
     private final PreventivoHeaderRepository preventivoHeaderRepository;
     private final PreventivoRigaRepository preventivoRigaRepository;
+    private final JdbcTemplate jdbc;
 
     public DomainDataController(
         AttivitaTecnicoRepository attivitaTecnicoRepository,
@@ -40,7 +50,8 @@ public class DomainDataController {
         ImpiantoRepository impiantoRepository,
         ArticoloOggettoRepository articoloOggettoRepository,
         PreventivoHeaderRepository preventivoHeaderRepository,
-        PreventivoRigaRepository preventivoRigaRepository
+        PreventivoRigaRepository preventivoRigaRepository,
+        JdbcTemplate jdbc
     ) {
         this.attivitaTecnicoRepository = attivitaTecnicoRepository;
         this.notificaSistemaRepository = notificaSistemaRepository;
@@ -48,12 +59,14 @@ public class DomainDataController {
         this.articoloOggettoRepository = articoloOggettoRepository;
         this.preventivoHeaderRepository = preventivoHeaderRepository;
         this.preventivoRigaRepository = preventivoRigaRepository;
+        this.jdbc = jdbc;
     }
 
     @GetMapping("/field/home")
-    public Map<String, Object> fieldHome() {
+    public Map<String, Object> fieldHome(@AuthenticationPrincipal AuthUser user) {
+        String technicianName = user == null ? TECHNICIAN_NAME : user.name();
         List<Map<String, Object>> assignedActivities = attivitaTecnicoRepository
-            .findTop5ByAssegnataAOrderByScadenzaAscIdAsc(TECHNICIAN_NAME)
+            .findTop5ByAssegnataAOrderByScadenzaAscIdAsc(technicianName)
             .stream()
             .map(this::toActivityDto)
             .toList();
@@ -63,7 +76,7 @@ public class DomainDataController {
             .orElse(dto("title", "Nessuna notifica", "message", "Non ci sono aggiornamenti da visualizzare.", "type", "info"));
 
         return dto(
-            "technician", Map.of("name", TECHNICIAN_NAME, "online", true),
+            "technician", Map.of("name", technicianName, "online", true),
             "stats", Map.of(
                 "assigned", assignedActivities.size(),
                 "pendingSync", 0,
@@ -82,6 +95,32 @@ public class DomainDataController {
             .toList();
     }
 
+    @GetMapping("/field/plants/{id}")
+    public Map<String, Object> plant(@PathVariable String id) {
+        Long plantId = parsePrefixedId(id, "p-");
+        return impiantoRepository.findById(plantId)
+            .map(this::toPlantDto)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Impianto non trovato"));
+    }
+
+    @GetMapping("/customers/search")
+    public List<Map<String, Object>> customers() {
+        return plants();
+    }
+
+    @GetMapping("/customers/{id}")
+    public Map<String, Object> customer(@PathVariable String id) {
+        Map<String, Object> plant = plant(id);
+        return dto(
+            "id", plant.get("id"),
+            "customerName", plant.get("customer"),
+            "plantCode", plant.get("code"),
+            "serial", plant.get("serial"),
+            "address", plant.get("address"),
+            "type", plant.get("type")
+        );
+    }
+
     @GetMapping("/catalog/items")
     public List<Map<String, Object>> catalogItems() {
         return articoloOggettoRepository.findAll()
@@ -89,6 +128,38 @@ public class DomainDataController {
             .sorted((left, right) -> catalogCode(left).compareTo(catalogCode(right)))
             .map(this::toCatalogItemDto)
             .toList();
+    }
+
+    @GetMapping("/catalog/categories")
+    public List<String> catalogCategories() {
+        return articoloOggettoRepository.findAll().stream()
+            .map(item -> item.getCategoriaL2().getDescrizioneGruppo())
+            .distinct()
+            .sorted()
+            .toList();
+    }
+
+    @PostMapping("/catalog/items")
+    public Map<String, Object> createCatalogItem(@RequestBody Map<String, Object> payload) {
+        Long categoryId = jdbc.queryForObject("SELECT id FROM categorie_l2 ORDER BY id LIMIT 1", Long.class);
+        Integer nextCode = jdbc.queryForObject(
+            "SELECT COALESCE(MAX(codice_voce), 0) + 1 FROM articoli_oggetti WHERE categoria_l2_id = ?",
+            Integer.class,
+            categoryId
+        );
+        Long id = jdbc.queryForObject("""
+            INSERT INTO articoli_oggetti (categoria_l2_id, codice_voce, descrizione_breve, descrizione_estesa)
+            VALUES (?, ?, ?, ?)
+            RETURNING id
+            """, Long.class,
+            categoryId,
+            nextCode,
+            string(payload.get("name"), "Nuovo oggetto"),
+            string(payload.get("shortDescription"), null)
+        );
+        ArticoloOggetto item = articoloOggettoRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oggetto non creato"));
+        return toCatalogItemDto(item);
     }
 
     @GetMapping("/quotes")
@@ -105,6 +176,27 @@ public class DomainDataController {
             .stream()
             .map(this::toQuoteRowDto)
             .toList();
+    }
+
+    @GetMapping("/inspections")
+    public List<Map<String, Object>> inspections() {
+        return jdbc.query("""
+            SELECT r.*, c.ragione_sociale, i.codice_impianto, i.indirizzo_installazione, i.citta
+            FROM rilievi r
+            LEFT JOIN clienti c ON c.id = r.cliente_id
+            LEFT JOIN impianti i ON i.id = r.impianto_id
+            ORDER BY r.aggiornato_il DESC, r.id DESC
+            """, (rs, rowNum) -> inspectionDto(rs.getLong("id")));
+    }
+
+    @PostMapping({"/inspections/save-draft", "/inspections/{ignored}/save-draft"})
+    public Map<String, Object> saveInspection(@RequestBody Map<String, Object> payload) {
+        return saveInspectionPayload(payload, false);
+    }
+
+    @PostMapping({"/inspections/submit", "/inspections/{ignored}/submit"})
+    public Map<String, Object> submitInspection(@RequestBody Map<String, Object> payload) {
+        return saveInspectionPayload(payload, true);
     }
 
     private Map<String, Object> toActivityDto(AttivitaTecnico activity) {
@@ -203,6 +295,155 @@ public class DomainDataController {
             return address;
         }
         return address + ", " + city;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> saveInspectionPayload(Map<String, Object> payload, boolean submitted) {
+        String customerId = string(payload.get("customerId"), "");
+        Long plantId = customerId.startsWith("p-") ? parsePrefixedId(customerId, "p-") : null;
+        Long customerDbId = plantId == null ? null : jdbc.queryForObject("SELECT cliente_id FROM impianti WHERE id = ?", Long.class, plantId);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) payload.getOrDefault("items", List.of());
+        BigDecimal totalHours = decimal(payload.get("totalLaborHours"));
+        BigDecimal totalMaterial = decimal(payload.get("totalMaterialCost"));
+        Long id = parseOptionalId(payload.get("id"));
+        if (id != null && !inspectionExists(id)) {
+            id = null;
+        }
+        String status = submitted ? "SUBMITTED" : "DRAFT";
+        if (id == null) {
+            id = jdbc.queryForObject("""
+                INSERT INTO rilievi (cliente_id, impianto_id, stato, tecnico_id, tecnico_nome, totale_ore_manodopera, totale_costo_materiale, inviato_il)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING id
+                """, Long.class,
+                customerDbId,
+                plantId,
+                status,
+                parseOptionalId(payload.get("technicianId")),
+                string(payload.get("technicianName"), "Tecnico"),
+                totalHours,
+                totalMaterial,
+                submitted ? OffsetDateTime.now() : null
+            );
+        } else {
+            jdbc.update("""
+                UPDATE rilievi
+                SET cliente_id = ?, impianto_id = ?, stato = ?, tecnico_id = ?, tecnico_nome = ?,
+                    totale_ore_manodopera = ?, totale_costo_materiale = ?, aggiornato_il = NOW(),
+                    inviato_il = CASE WHEN ? THEN COALESCE(inviato_il, NOW()) ELSE inviato_il END
+                WHERE id = ?
+                """,
+                customerDbId, plantId, status, parseOptionalId(payload.get("technicianId")),
+                string(payload.get("technicianName"), "Tecnico"), totalHours, totalMaterial, submitted, id
+            );
+            jdbc.update("DELETE FROM rilievi_righe WHERE rilievo_id = ?", id);
+        }
+        for (Map<String, Object> item : items) {
+            jdbc.update("""
+                INSERT INTO rilievi_righe (
+                    rilievo_id, articolo_id, nome_articolo, categoria_nome, ore_manodopera,
+                    costo_materiale, nota_grezza, trascrizione, descrizione_formalizzata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                id,
+                parseOptionalId(item.get("catalogItemId")),
+                string(item.get("catalogItemName"), "Voce rilievo"),
+                string(item.get("categoryName"), null),
+                decimal(item.get("laborHours")),
+                decimal(item.get("materialCost")),
+                string(item.get("rawNote"), null),
+                string(item.get("transcribedNote"), null),
+                string(item.get("formalizedDescription"), null)
+            );
+        }
+        return inspectionDto(id);
+    }
+
+    private Map<String, Object> inspectionDto(Long id) {
+        Map<String, Object> header = jdbc.queryForObject("""
+            SELECT r.*, c.ragione_sociale, i.codice_impianto, i.indirizzo_installazione, i.citta
+            FROM rilievi r
+            LEFT JOIN clienti c ON c.id = r.cliente_id
+            LEFT JOIN impianti i ON i.id = r.impianto_id
+            WHERE r.id = ?
+            """, (rs, rowNum) -> dto(
+                "id", "insp-" + rs.getLong("id"),
+                "customerId", rs.getObject("impianto_id") == null ? "" : "p-" + rs.getLong("impianto_id"),
+                "customerName", rs.getString("ragione_sociale") == null ? "Cliente da selezionare" : rs.getString("ragione_sociale"),
+                "plantCode", rs.getString("codice_impianto"),
+                "plantAddress", joinAddress(rs.getString("indirizzo_installazione"), rs.getString("citta")),
+                "status", rs.getString("stato"),
+                "technicianId", String.valueOf(rs.getLong("tecnico_id")),
+                "technicianName", rs.getString("tecnico_nome"),
+                "totalLaborHours", rs.getBigDecimal("totale_ore_manodopera"),
+                "totalMaterialCost", rs.getBigDecimal("totale_costo_materiale"),
+                "createdAt", rs.getObject("creato_il", OffsetDateTime.class),
+                "updatedAt", rs.getObject("aggiornato_il", OffsetDateTime.class),
+                "submittedAt", rs.getObject("inviato_il", OffsetDateTime.class)
+            ), id);
+        List<Map<String, Object>> rows = jdbc.query("""
+            SELECT * FROM rilievi_righe WHERE rilievo_id = ? ORDER BY id
+            """, (rs, rowNum) -> dto(
+                "id", "line-" + rs.getLong("id"),
+                "catalogItemId", String.valueOf(rs.getLong("articolo_id")),
+                "catalogItemName", rs.getString("nome_articolo"),
+                "categoryName", rs.getString("categoria_nome"),
+                "laborHours", rs.getBigDecimal("ore_manodopera"),
+                "materialCost", rs.getBigDecimal("costo_materiale"),
+                "rawNote", rs.getString("nota_grezza"),
+                "transcribedNote", rs.getString("trascrizione"),
+                "formalizedDescription", rs.getString("descrizione_formalizzata"),
+                "photos", List.of()
+            ), id);
+        header.put("items", rows);
+        return header;
+    }
+
+    private Long parsePrefixedId(String value, String prefix) {
+        if (value == null || !value.startsWith(prefix)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Identificativo non valido");
+        }
+        return Long.parseLong(value.substring(prefix.length()));
+    }
+
+    private Long parseOptionalId(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = String.valueOf(value);
+        if (text.isBlank() || text.startsWith("draft-") || text.startsWith("line-")) {
+            return null;
+        }
+        if (text.startsWith("insp-")) {
+            text = text.substring(5);
+        }
+        if (text.startsWith("p-")) {
+            text = text.substring(2);
+        }
+        try {
+            return Long.parseLong(text);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private boolean inspectionExists(Long id) {
+        Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM rilievi WHERE id = ?", Integer.class, id);
+        return count != null && count > 0;
+    }
+
+    private BigDecimal decimal(Object value) {
+        if (value == null || String.valueOf(value).isBlank()) {
+            return BigDecimal.ZERO;
+        }
+        return new BigDecimal(String.valueOf(value));
+    }
+
+    private String string(Object value, String fallback) {
+        if (value == null || String.valueOf(value).isBlank()) {
+            return fallback;
+        }
+        return String.valueOf(value);
     }
 
     private Map<String, Object> dto(Object... entries) {

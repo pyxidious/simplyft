@@ -63,5 +63,11 @@ export class PlantDetailComponent {
       estimatedYear: [plant?.estimatedYear ?? 2020],
       notes: [plant?.notes ?? '']
     });
+    if (!plant) {
+      this.plants.getById$(id).subscribe((loaded) => {
+        this.plantValue = { ...loaded, attachments: loaded.attachments ?? [] };
+        this.form.patchValue(this.plantValue);
+      });
+    }
   }
 }

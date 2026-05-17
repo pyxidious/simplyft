@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AuthMockService } from '../../services/auth-mock.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-topbar',
@@ -20,5 +20,5 @@ import { AuthMockService } from '../../services/auth-mock.service';
   `
 })
 export class TopbarComponent {
-  constructor(public auth: AuthMockService) {}
+  constructor(public auth: AuthService) {}
 }

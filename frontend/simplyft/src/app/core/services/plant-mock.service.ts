@@ -1,13 +1,45 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
+import { Observable, tap } from 'rxjs';
 import { Plant, PlantStatus } from '../models/simplyft.models';
-import { MOCK_PLANTS } from './mock-data';
 
 @Injectable({ providedIn: 'root' })
 export class PlantMockService {
-  plants = signal<Plant[]>(this.restore());
+  plants = signal<Plant[]>([]);
+  loading = signal(false);
+
+  constructor(private http: HttpClient) {
+    this.load();
+  }
+
+  load(): void {
+    this.loading.set(true);
+    this.http.get<Plant[]>('/api/field/plants').subscribe({
+      next: (plants) => {
+        this.plants.set(plants.map((plant) => ({ ...plant, attachments: plant.attachments ?? [] })));
+        this.loading.set(false);
+      },
+      error: () => {
+        this.plants.set([]);
+        this.loading.set(false);
+      }
+    });
+  }
 
   getById(id: string): Plant | undefined {
-    return this.plants().find((plant) => plant.id === id);
+    const cached = this.plants().find((plant) => plant.id === id);
+    if (!cached) {
+      this.http.get<Plant>(`/api/field/plants/${id}`).subscribe((plant) => this.plants.update((items) => [plant, ...items]));
+    }
+    return cached;
+  }
+
+  getById$(id: string): Observable<Plant> {
+    return this.http.get<Plant>(`/api/field/plants/${id}`).pipe(
+      tap((plant) => this.plants.update((items) => items.some((item) => item.id === plant.id)
+        ? items.map((item) => item.id === plant.id ? plant : item)
+        : [plant, ...items]))
+    );
   }
 
   search(query: string, status: PlantStatus | 'all'): Plant[] {
@@ -20,13 +52,6 @@ export class PlantMockService {
   }
 
   update(plant: Plant): void {
-    const next = this.plants().map((item) => item.id === plant.id ? plant : item);
-    this.plants.set(next);
-    localStorage.setItem('simplyft-plants', JSON.stringify(next));
-  }
-
-  private restore(): Plant[] {
-    const raw = localStorage.getItem('simplyft-plants');
-    return raw ? JSON.parse(raw) as Plant[] : MOCK_PLANTS;
+    this.plants.update((items) => items.map((item) => item.id === plant.id ? plant : item));
   }
 }

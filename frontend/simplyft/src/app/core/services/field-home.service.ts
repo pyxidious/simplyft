@@ -29,37 +29,20 @@ export interface FieldHomeData {
   };
 }
 
-const FALLBACK_HOME: FieldHomeData = {
-  technician: { name: 'Marcus V.', online: true },
-  stats: { assigned: 2, pendingSync: 0, catalogItems: 4 },
-  assignedActivities: [
-    {
-      code: 'ELV-4029-A',
-      title: 'Manutenzione sollevatori principale',
-      location: 'Piazza Centro • Torre B',
-      type: 'maintenance',
-      priority: 'Alta',
-      dueDate: '2026-05-18'
-    },
-    {
-      code: 'SRV-1022-C',
-      title: 'Ispezione di sicurezza',
-      location: 'Parco Industriale Ovest',
-      type: 'safety',
-      priority: 'Media',
-      dueDate: '2026-05-19'
-    }
-  ],
+const EMPTY_HOME: FieldHomeData = {
+  technician: { name: 'Tecnico', online: false },
+  stats: { assigned: 0, pendingSync: 0, catalogItems: 0 },
+  assignedActivities: [],
   notification: {
-    title: 'Nuovi ricambi disponibili per il ritiro',
-    message: 'L ordine #9921 per ELV-4029 e stato elaborato presso Magazzino Nord.',
-    type: 'parts'
+    title: 'Backend non raggiungibile',
+    message: 'Controlla connessione e sessione, poi riprova.',
+    type: 'warning'
   }
 };
 
 @Injectable({ providedIn: 'root' })
 export class FieldHomeService {
-  home = signal<FieldHomeData>(FALLBACK_HOME);
+  home = signal<FieldHomeData>(EMPTY_HOME);
   loading = signal(false);
 
   constructor(private http: HttpClient) {}
@@ -68,7 +51,7 @@ export class FieldHomeService {
     this.loading.set(true);
     this.http.get<FieldHomeData>('/api/field/home').pipe(
       tap((home) => this.home.set(home)),
-      catchError(() => of(FALLBACK_HOME)),
+      catchError(() => of(EMPTY_HOME)),
       tap(() => this.loading.set(false))
     ).subscribe((home) => this.home.set(home));
   }

@@ -19,7 +19,7 @@ import { StatusBadgeComponent } from '../../../shared/components/status-badge/st
         <article class="card"><h2>Campi completi</h2><p *ngFor="let field of item.completedFields">OK {{ field }}</p></article>
         <article class="card"><h2>Campi mancanti</h2><p *ngFor="let field of item.missingFields">! {{ field }}</p></article>
       </div>
-      <article class="card"><h2>Suggerimenti AI mock</h2><p *ngFor="let suggestion of item.aiSuggestions">- {{ suggestion }}</p></article>
+      <article class="card"><h2>Suggerimenti AI</h2><p *ngFor="let suggestion of item.aiSuggestions">- {{ suggestion }}</p></article>
       <div class="sticky-actions">
         <a class="btn secondary" routerLink="/field/nuovo-rilievo">Torna al rilievo</a>
         <a class="btn primary" routerLink="/office/dashboard">Conferma e invia</a>

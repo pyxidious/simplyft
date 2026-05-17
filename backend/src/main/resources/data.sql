@@ -69,13 +69,25 @@ INSERT INTO preventivi_righe (
 ON CONFLICT DO NOTHING;
 
 INSERT INTO attivita_tecnico (codice, titolo, luogo, impianto_id, tipo, stato, priorita, assegnata_a, scadenza) VALUES
-    ('ELV-4029-A', 'Manutenzione sollevatori principale', 'Piazza Centro • Torre B', (SELECT id FROM impianti WHERE codice_impianto = 4029), 'maintenance', 'assegnata', 'Alta', 'Marcus V.', '2026-05-18'),
-    ('SRV-1022-C', 'Ispezione di sicurezza', 'Parco Industriale Ovest', (SELECT id FROM impianti WHERE codice_impianto = 1022), 'safety', 'assegnata', 'Media', 'Marcus V.', '2026-05-19')
+    ('ELV-4029-A', 'Manutenzione sollevatori principale', 'Piazza Centro • Torre B', (SELECT id FROM impianti WHERE codice_impianto = 4029), 'maintenance', 'assegnata', 'Alta', 'Luca Bianchi', '2026-05-18'),
+    ('SRV-1022-C', 'Ispezione di sicurezza', 'Parco Industriale Ovest', (SELECT id FROM impianti WHERE codice_impianto = 1022), 'safety', 'assegnata', 'Media', 'Luca Bianchi', '2026-05-19')
 ON CONFLICT (codice) DO UPDATE SET
     titolo = EXCLUDED.titolo,
     luogo = EXCLUDED.luogo,
+    assegnata_a = EXCLUDED.assegnata_a,
     scadenza = EXCLUDED.scadenza;
 
 INSERT INTO notifiche_sistema (titolo, messaggio, tipo, creata_il) VALUES
     ('Nuovi ricambi disponibili per il ritiro', 'L ordine #9921 per ELV-4029 e stato elaborato presso Magazzino Nord.', 'parts', '2026-05-17T08:15:00Z')
 ON CONFLICT DO NOTHING;
+
+INSERT INTO utenti (nome, email, password_hash, ruolo, titolo, attivo) VALUES
+    ('Luca Bianchi', 'tecnico@simplyft.local', '$2a$10$7EqJtq98hPqEX7fNZaFWoOhi/jOHysVsRMsjF3TfgQ3Ex2l2N5EHC', 'tecnico', 'Tecnico Senior Area Nord', TRUE),
+    ('Giulia Conti', 'commerciale@simplyft.local', '$2a$10$7EqJtq98hPqEX7fNZaFWoOhi/jOHysVsRMsjF3TfgQ3Ex2l2N5EHC', 'commerciale', 'Back-office commerciale', TRUE),
+    ('Admin Simplyft', 'admin@simplyft.local', '$2a$10$7EqJtq98hPqEX7fNZaFWoOhi/jOHysVsRMsjF3TfgQ3Ex2l2N5EHC', 'amministratore', 'Amministratore', TRUE)
+ON CONFLICT (email) DO UPDATE SET
+    nome = EXCLUDED.nome,
+    password_hash = EXCLUDED.password_hash,
+    ruolo = EXCLUDED.ruolo,
+    titolo = EXCLUDED.titolo,
+    attivo = EXCLUDED.attivo;

@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CatalogItem, CustomerPlant, InspectionDraft, InspectionItem } from '../../../core/models/simplyft.models';
-import { AuthMockService } from '../../../core/services/auth-mock.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { InspectionService } from '../../../core/services/inspection.service';
 import { CatalogObjectPickerComponent } from './components/catalog-object-picker.component';
 import { CustomerPlantSelectorComponent } from './components/customer-plant-selector.component';
@@ -144,7 +144,7 @@ export class NewSurveyComponent {
 
   constructor(
     private router: Router,
-    private auth: AuthMockService,
+    private auth: AuthService,
     private inspections: InspectionService
   ) {}
 
