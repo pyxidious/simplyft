@@ -8,11 +8,12 @@ import { StatusBadgeComponent } from '../status-badge/status-badge.component';
   selector: 'app-kanban-board',
   standalone: true,
   imports: [CommonModule, CurrencyPipe, RouterLink, StatusBadgeComponent],
+  styleUrl: './kanban-board.component.css',
   template: `
     <div class="kanban">
       <section class="kanban-column" *ngFor="let column of columns">
         <header><h3>{{ column.title }}</h3><span>{{ column.quotes.length }}</span></header>
-        <a class="kanban-card" *ngFor="let quote of column.quotes" [routerLink]="['/office/preventivo', quote.id]">
+        <a class="kanban-card" *ngFor="let quote of column.quotes" [routerLink]="['/commerciale/preventivo', quote.id]">
           <div class="kanban-card-top">
             <b>{{ quote.customer }}</b>
             <app-status-badge [label]="quote.priority" [tone]="quote.priority === 'Alta' ? 'danger' : quote.priority === 'Media' ? 'warning' : 'info'" />

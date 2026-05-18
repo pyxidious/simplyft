@@ -6,18 +6,8 @@ import { AuthService } from '../../services/auth.service';
   selector: 'app-topbar',
   standalone: true,
   imports: [RouterLink],
-  template: `
-    <header class="topbar">
-      <div>
-        <p class="muted">Back-office commerciale</p>
-        <h1>Centro operativo SimpLyft</h1>
-      </div>
-      <div class="topbar-actions">
-        <a class="btn secondary" routerLink="/field/home">Vista tecnico</a>
-        <button class="btn ghost" (click)="auth.logout()">Esci</button>
-      </div>
-    </header>
-  `
+  templateUrl: './topbar.component.html',
+  styleUrl: './topbar.component.css'
 })
 export class TopbarComponent {
   constructor(public auth: AuthService) {}

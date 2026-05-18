@@ -1,0 +1,39 @@
+.quote-summary {
+  padding: 20px;
+  border-radius: 16px;
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
+}
+
+.muted {
+  margin: 0 0 16px;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+div {
+  padding: 13px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+span {
+  color: #cbd5e1;
+}
+
+b {
+  color: #ffffff;
+  font-size: 1rem;
+}
+
+.total b {
+  color: #93c5fd;
+  font-size: 1.22rem;
+}

@@ -1,0 +1,28 @@
+<section class="settings-page">
+  <header class="page-topbar">
+    <a routerLink="/tecnico/home" aria-label="Torna alla home">‹</a>
+    <h1>Profilo</h1>
+    <span></span>
+  </header>
+
+  <main class="page-content">
+    <section class="profile-card">
+      <p class="eyebrow">Profilo e impostazioni</p>
+      <h2>{{ auth.currentUser()?.name || 'Demo' }}</h2>
+      <span>Sessione autenticata collegata al backend. Il localStorage conserva solo il token.</span>
+    </section>
+
+    <section class="info-grid">
+      <p><span>Utente</span><b>{{ auth.currentUser()?.name || 'Demo' }}</b></p>
+      <p><span>Ruolo</span><b>{{ auth.currentUser()?.role || 'Non disponibile' }}</b></p>
+      <p><span>Profilo</span><b>{{ auth.currentUser()?.title || 'Non disponibile' }}</b></p>
+      <p><span>Ambiente</span><b>API backend reali</b></p>
+    </section>
+
+    <section class="button-row">
+      <a class="btn secondary" routerLink="/tecnico/home">App tecnico</a>
+      <a class="btn secondary" routerLink="/commerciale/dashboard">Back-office</a>
+      <button class="btn ghost" type="button" (click)="auth.logout()">Logout</button>
+    </section>
+  </main>
+</section>

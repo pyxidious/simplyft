@@ -1,0 +1,21 @@
+<section class="commercial-page">
+  <div class="section-head">
+    <div>
+      <p>Commerciale</p>
+      <h2>Preventivi</h2>
+    </div>
+    <a class="btn primary" routerLink="/commerciale/pipeline">Pipeline</a>
+  </div>
+
+  <div class="quote-list">
+    <a class="quote-row" *ngFor="let quote of quotes.quotes()" [routerLink]="['/commerciale/preventivo', quote.id]">
+      <div class="quote-main">
+        <b>{{ quote.title }}</b>
+        <p>{{ quote.customer }} - {{ quote.plantCode }}</p>
+      </div>
+      <app-status-badge [label]="quote.technicalValidation" [tone]="quote.technicalValidation === 'Validato' ? 'success' : 'warning'" />
+      <strong>{{ quote.estimatedValue | currency:'EUR':'symbol':'1.0-0' }}</strong>
+      <span>{{ quote.assignee }}</span>
+    </a>
+  </div>
+</section>

@@ -1,0 +1,47 @@
+<section class="review-page" *ngIf="survey.latest() as item">
+  <header class="page-topbar">
+    <a routerLink="/tecnico/rilievi/nuovo" aria-label="Torna al rilievo">‹</a>
+    <h1>Verifica</h1>
+    <span></span>
+  </header>
+
+  <main class="page-content">
+    <section class="page-hero">
+      <div>
+        <p class="eyebrow">Verifica e conferma</p>
+        <h2>Riepilogo rilievo</h2>
+        <span>I dati sono pronti per il back-office con campi normalizzati e warning espliciti.</span>
+      </div>
+      <app-status-badge [label]="item.reliability + '% AI'" tone="info" />
+    </section>
+
+    <section class="card reliability-card">
+      <div class="radial">{{ item.reliability }}%</div>
+      <div>
+        <b>Affidabilita dati</b>
+        <p>Controlla rapidamente completezza, mancanze e suggerimenti prima dell'invio.</p>
+      </div>
+    </section>
+
+    <div class="split">
+      <article class="card">
+        <h2>Campi completi</h2>
+        <p *ngFor="let field of item.completedFields">OK {{ field }}</p>
+      </article>
+      <article class="card">
+        <h2>Campi mancanti</h2>
+        <p *ngFor="let field of item.missingFields">! {{ field }}</p>
+      </article>
+    </div>
+
+    <article class="card">
+      <h2>Suggerimenti AI</h2>
+      <p *ngFor="let suggestion of item.aiSuggestions">- {{ suggestion }}</p>
+    </article>
+
+    <div class="sticky-actions">
+      <a class="btn secondary" routerLink="/tecnico/rilievi/nuovo">Torna al rilievo</a>
+      <a class="btn primary" routerLink="/commerciale/dashboard">Conferma e invia</a>
+    </div>
+  </main>
+</section>

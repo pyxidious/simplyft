@@ -67,7 +67,7 @@ export class AuthService {
     if (!user) {
       return '/login';
     }
-    return user.role === 'tecnico' ? '/field/home' : '/office/dashboard';
+    return user.role === 'tecnico' ? '/tecnico/home' : '/commerciale/dashboard';
   }
 
   private clearSession(): void {

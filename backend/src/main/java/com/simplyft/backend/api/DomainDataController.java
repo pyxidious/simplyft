@@ -62,7 +62,7 @@ public class DomainDataController {
         this.jdbc = jdbc;
     }
 
-    @GetMapping("/field/home")
+    @GetMapping({"/field/home", "/tecnico/home"})
     public Map<String, Object> fieldHome(@AuthenticationPrincipal AuthUser user) {
         String technicianName = user == null ? TECHNICIAN_NAME : user.name();
         List<Map<String, Object>> assignedActivities = attivitaTecnicoRepository
@@ -87,7 +87,7 @@ public class DomainDataController {
         );
     }
 
-    @GetMapping("/field/plants")
+    @GetMapping({"/field/plants", "/tecnico/plants"})
     public List<Map<String, Object>> plants() {
         return impiantoRepository.findAllByOrderByUltimoRilievoDesc()
             .stream()
@@ -95,7 +95,7 @@ public class DomainDataController {
             .toList();
     }
 
-    @GetMapping("/field/plants/{id}")
+    @GetMapping({"/field/plants/{id}", "/tecnico/plants/{id}"})
     public Map<String, Object> plant(@PathVariable String id) {
         Long plantId = parsePrefixedId(id, "p-");
         return impiantoRepository.findById(plantId)
@@ -179,24 +179,35 @@ public class DomainDataController {
     }
 
     @GetMapping("/inspections")
-    public List<Map<String, Object>> inspections() {
+    public List<Map<String, Object>> inspections(@AuthenticationPrincipal AuthUser user) {
+        if (user != null && "tecnico".equals(user.role())) {
+            return jdbc.query("""
+                SELECT r.*, c.ragione_sociale, i.codice_impianto, i.indirizzo_installazione, i.citta
+                FROM rilievi r
+                LEFT JOIN clienti c ON c.id = r.cliente_id
+                LEFT JOIN impianti i ON i.id = r.impianto_id
+                WHERE r.tecnico_id = ?
+                ORDER BY r.aggiornato_il DESC, r.id DESC
+                """, (rs, rowNum) -> inspectionDto(rs.getLong("id")), user.id());
+        }
         return jdbc.query("""
             SELECT r.*, c.ragione_sociale, i.codice_impianto, i.indirizzo_installazione, i.citta
             FROM rilievi r
             LEFT JOIN clienti c ON c.id = r.cliente_id
             LEFT JOIN impianti i ON i.id = r.impianto_id
+            WHERE r.stato <> 'DRAFT'
             ORDER BY r.aggiornato_il DESC, r.id DESC
             """, (rs, rowNum) -> inspectionDto(rs.getLong("id")));
     }
 
     @PostMapping({"/inspections/save-draft", "/inspections/{ignored}/save-draft"})
-    public Map<String, Object> saveInspection(@RequestBody Map<String, Object> payload) {
-        return saveInspectionPayload(payload, false);
+    public Map<String, Object> saveInspection(@RequestBody Map<String, Object> payload, @AuthenticationPrincipal AuthUser user) {
+        return saveInspectionPayload(payload, false, requireTechnician(user));
     }
 
     @PostMapping({"/inspections/submit", "/inspections/{ignored}/submit"})
-    public Map<String, Object> submitInspection(@RequestBody Map<String, Object> payload) {
-        return saveInspectionPayload(payload, true);
+    public Map<String, Object> submitInspection(@RequestBody Map<String, Object> payload, @AuthenticationPrincipal AuthUser user) {
+        return saveInspectionPayload(payload, true, requireTechnician(user));
     }
 
     private Map<String, Object> toActivityDto(AttivitaTecnico activity) {
@@ -298,7 +309,7 @@ public class DomainDataController {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> saveInspectionPayload(Map<String, Object> payload, boolean submitted) {
+    private Map<String, Object> saveInspectionPayload(Map<String, Object> payload, boolean submitted, AuthUser user) {
         String customerId = string(payload.get("customerId"), "");
         Long plantId = customerId.startsWith("p-") ? parsePrefixedId(customerId, "p-") : null;
         Long customerDbId = plantId == null ? null : jdbc.queryForObject("SELECT cliente_id FROM impianti WHERE id = ?", Long.class, plantId);
@@ -306,6 +317,12 @@ public class DomainDataController {
         BigDecimal totalHours = decimal(payload.get("totalLaborHours"));
         BigDecimal totalMaterial = decimal(payload.get("totalMaterialCost"));
         Long id = parseOptionalId(payload.get("id"));
+        if (id != null && inspectionExists(id) && !inspectionOwnedBy(id, user.id())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rilievo non trovato");
+        }
+        if (id != null && inspectionExists(id) && !"DRAFT".equals(inspectionStatus(id))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Rilievo gia inviato");
+        }
         if (id != null && !inspectionExists(id)) {
             id = null;
         }
@@ -319,8 +336,8 @@ public class DomainDataController {
                 customerDbId,
                 plantId,
                 status,
-                parseOptionalId(payload.get("technicianId")),
-                string(payload.get("technicianName"), "Tecnico"),
+                user.id(),
+                user.name(),
                 totalHours,
                 totalMaterial,
                 submitted ? OffsetDateTime.now() : null
@@ -333,8 +350,8 @@ public class DomainDataController {
                     inviato_il = CASE WHEN ? THEN COALESCE(inviato_il, NOW()) ELSE inviato_il END
                 WHERE id = ?
                 """,
-                customerDbId, plantId, status, parseOptionalId(payload.get("technicianId")),
-                string(payload.get("technicianName"), "Tecnico"), totalHours, totalMaterial, submitted, id
+                customerDbId, plantId, status, user.id(),
+                user.name(), totalHours, totalMaterial, submitted, id
             );
             jdbc.update("DELETE FROM rilievi_righe WHERE rilievo_id = ?", id);
         }
@@ -342,8 +359,9 @@ public class DomainDataController {
             jdbc.update("""
                 INSERT INTO rilievi_righe (
                     rilievo_id, articolo_id, nome_articolo, categoria_nome, ore_manodopera,
-                    costo_materiale, nota_grezza, trascrizione, descrizione_formalizzata
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    costo_materiale, nota_grezza, trascrizione, descrizione_tecnica_originale,
+                    descrizione_formalizzata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 id,
                 parseOptionalId(item.get("catalogItemId")),
@@ -353,6 +371,7 @@ public class DomainDataController {
                 decimal(item.get("materialCost")),
                 string(item.get("rawNote"), null),
                 string(item.get("transcribedNote"), null),
+                string(item.get("originalTechnicalDescription"), null),
                 string(item.get("formalizedDescription"), null)
             );
         }
@@ -392,6 +411,7 @@ public class DomainDataController {
                 "materialCost", rs.getBigDecimal("costo_materiale"),
                 "rawNote", rs.getString("nota_grezza"),
                 "transcribedNote", rs.getString("trascrizione"),
+                "originalTechnicalDescription", rs.getString("descrizione_tecnica_originale"),
                 "formalizedDescription", rs.getString("descrizione_formalizzata"),
                 "photos", List.of()
             ), id);
@@ -427,9 +447,28 @@ public class DomainDataController {
         }
     }
 
+    private boolean inspectionOwnedBy(Long id, Long userId) {
+        Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM rilievi WHERE id = ? AND tecnico_id = ?", Integer.class, id, userId);
+        return count != null && count > 0;
+    }
+
     private boolean inspectionExists(Long id) {
         Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM rilievi WHERE id = ?", Integer.class, id);
         return count != null && count > 0;
+    }
+
+    private String inspectionStatus(Long id) {
+        return jdbc.queryForObject("SELECT stato FROM rilievi WHERE id = ?", String.class, id);
+    }
+
+    private AuthUser requireTechnician(AuthUser user) {
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Autenticazione richiesta");
+        }
+        if (!"tecnico".equals(user.role())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accesso riservato ai tecnici");
+        }
+        return user;
     }
 
     private BigDecimal decimal(Object value) {

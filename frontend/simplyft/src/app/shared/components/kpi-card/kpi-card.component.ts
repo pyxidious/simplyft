@@ -3,6 +3,7 @@ import { Component, Input } from '@angular/core';
 @Component({
   selector: 'app-kpi-card',
   standalone: true,
+  styleUrl: './kpi-card.component.css',
   template: `
     <article class="card kpi-card">
       <div>

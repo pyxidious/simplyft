@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
-import { Observable, catchError, map, of, tap, throwError } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, tap, throwError } from 'rxjs';
 import {
   CatalogItem,
   CreateCatalogItemRequest,
@@ -8,6 +8,7 @@ import {
   InspectionDraft,
   InspectionItem
 } from '../models/simplyft.models';
+import { AuthService } from './auth.service';
 
 interface ApiPlant {
   id: string;
@@ -33,15 +34,31 @@ interface ApiCatalogItem {
 export class InspectionService {
   private inspections = signal<InspectionDraft[]>([]);
   readonly allInspections = computed(() => this.inspections());
+  readonly loading = signal(false);
+  readonly error = signal('');
 
-  constructor(private http: HttpClient) {
-    this.loadInspections();
+  constructor(private http: HttpClient, private auth: AuthService) {
+    if (this.auth.currentUser()?.role === 'tecnico') {
+      this.loadInspections();
+    }
   }
 
   loadInspections(): void {
-    this.http.get<InspectionDraft[]>('/api/inspections').pipe(
-      catchError(() => of([]))
-    ).subscribe((items) => this.inspections.set(items));
+    this.loading.set(true);
+    this.error.set('');
+    forkJoin({
+      drafts: this.http.get<InspectionDraft[]>('/api/tecnico/rilievi/bozze'),
+      submitted: this.http.get<InspectionDraft[]>('/api/tecnico/rilievi')
+    }).pipe(
+      map(({ drafts, submitted }) => [...drafts, ...submitted]),
+      catchError((error) => {
+        this.error.set(this.messageForStatus(error.status));
+        return of([]);
+      })
+    ).subscribe((items) => {
+      this.inspections.set(items);
+      this.loading.set(false);
+    });
   }
 
   searchCustomers(query: string): Observable<CustomerPlant[]> {
@@ -78,37 +95,67 @@ export class InspectionService {
 
   saveDraft(draft: InspectionDraft): Observable<InspectionDraft> {
     const nextDraft = this.prepareForSave({ ...draft, status: 'DRAFT' });
-    return this.http.post<InspectionDraft>('/api/inspections/save-draft', nextDraft).pipe(
+    const request = this.isPersistedInspection(nextDraft)
+      ? this.http.put<InspectionDraft>(`/api/tecnico/rilievi/bozze/${nextDraft.id}`, nextDraft)
+      : this.http.post<InspectionDraft>('/api/tecnico/rilievi/bozze', nextDraft);
+    return request.pipe(
       tap((saved) => this.upsert(saved))
     );
   }
 
   submit(draft: InspectionDraft): Observable<InspectionDraft> {
     const nextDraft = this.prepareForSave({ ...draft, status: 'SUBMITTED', submittedAt: new Date().toISOString() });
-    return this.http.post<InspectionDraft>('/api/inspections/submit', nextDraft).pipe(
+    const request = this.isPersistedInspection(nextDraft)
+      ? this.submitPersisted(nextDraft)
+      : this.http.post<InspectionDraft>('/api/tecnico/rilievi', nextDraft);
+    return request.pipe(
       tap((saved) => this.upsert(saved))
     );
   }
 
+  listForCommercialReview(): Observable<InspectionDraft[]> {
+    return this.http.get<InspectionDraft[]>('/api/inspections').pipe(
+      map((inspections) => inspections.filter((inspection) => inspection.status !== 'DRAFT'))
+    );
+  }
+
   listForUser(technicianId: string, role: 'tecnico' | 'commerciale' | 'amministratore'): InspectionDraft[] {
-    return this.inspections().filter((inspection) => {
-      if (inspection.status === 'SUBMITTED') {
-        return true;
-      }
-      return role === 'tecnico' && inspection.technicianId === technicianId;
-    });
+    if (role !== 'tecnico' || !technicianId) {
+      return [];
+    }
+    return this.inspections().filter((inspection) => inspection.status !== 'DRAFT' || inspection.technicianId === technicianId);
+  }
+
+  getDraft(id: string): Observable<InspectionDraft> {
+    return this.http.get<InspectionDraft>(`/api/tecnico/rilievi/bozze/${id}`).pipe(
+      tap((saved) => this.upsert(saved))
+    );
+  }
+
+  getInspection(id: string): Observable<InspectionDraft> {
+    return this.http.get<InspectionDraft>(`/api/tecnico/rilievi/${id}`).pipe(
+      tap((saved) => this.upsert(saved))
+    );
+  }
+
+  deleteDraft(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/tecnico/rilievi/bozze/${id}`).pipe(
+      tap(() => this.inspections.update((items) => items.filter((item) => item.id !== id)))
+    );
   }
 
   formalizeDescription(item: InspectionItem): Observable<string> {
-    const currentDescription = item.formalizedDescription?.trim() ?? '';
-    const mode = currentDescription ? 'FORMALIZE' : 'GENERATE';
+    const originalTechnicalDescription = this.originalTechnicalDescription(item);
+    item.originalTechnicalDescription = originalTechnicalDescription;
+    const mode = originalTechnicalDescription ? 'FORMALIZE' : 'GENERATE';
     const payload = {
       mode,
       objectName: item.catalogItemName,
       category: item.categoryName,
       laborHours: item.laborHours,
       materialCost: item.materialCost,
-      currentDescription,
+      originalTechnicalDescription,
+      currentDescription: originalTechnicalDescription,
       freeTechnicalNote: item.rawNote?.trim() ?? '',
       transcribedVoiceNote: item.transcribedNote?.trim() ?? '',
       photoMetadata: item.photos.map((photo) => ({
@@ -117,10 +164,11 @@ export class InspectionService {
       })),
       prompt: mode === 'GENERATE'
         ? 'Genera una descrizione breve e professionale per un commerciale, usando solo i dati tecnici forniti. Non inventare informazioni mancanti. Massimo 2 frasi.'
-        : 'Riscrivi il testo tecnico fornito in linguaggio chiaro, professionale e adatto a un commerciale o segretario. Mantieni il significato originale. Non aggiungere dettagli non presenti. Massimo 2 frasi.'
+        : 'Riscrivi il testo seguente in linguaggio chiaro, professionale e adatto a commerciale/segreteria. Mantieni il significato. Non aggiungere dettagli. Max 2 frasi. Non ripetere titoli o prefissi.'
     };
     return this.http.post<{ text?: string; formalizedText?: string; description?: string }>('/api/ai/formalize-description', payload).pipe(
-      map((response) => response.text ?? response.formalizedText ?? response.description ?? ''),
+      map((response) => response.formalizedText ?? response.text ?? response.description ?? ''),
+      map((text) => this.normalizeFormalizedPrefix(text, item.catalogItemName)),
       catchError(() => of(this.buildFormalDescription(item, mode)))
     );
   }
@@ -170,12 +218,19 @@ export class InspectionService {
     const totalMaterialCost = draft.items.reduce((sum, item) => sum + this.validNumber(item.materialCost), 0);
     return {
       ...draft,
-      id: draft.id ?? `insp-${Date.now()}`,
       totalLaborHours,
       totalMaterialCost,
       createdAt: draft.createdAt ?? now,
       updatedAt: now
     };
+  }
+
+  private submitPersisted(draft: InspectionDraft): Observable<InspectionDraft> {
+    return this.http.post<InspectionDraft>(`/api/tecnico/rilievi/${draft.id}/submit`, draft);
+  }
+
+  private isPersistedInspection(draft: InspectionDraft): boolean {
+    return Boolean(draft.id?.startsWith('insp-'));
   }
 
   private validNumber(value: number): number {
@@ -200,9 +255,27 @@ export class InspectionService {
     listMaterialPrice: item.listMaterialPrice
   });
 
+  private originalTechnicalDescription(item: InspectionItem): string {
+    return (item.originalTechnicalDescription ?? item.formalizedDescription ?? item.catalogItemName ?? '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private normalizeFormalizedPrefix(text: string, objectName: string): string {
+    const cleaned = text.replace(/\s+/g, ' ').trim();
+    const normalizedObject = objectName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const repeatedPrefix = new RegExp(`^(?:Intervento\\s+su\\s+${normalizedObject}:\\s*)+`, 'i');
+    const match = cleaned.match(repeatedPrefix);
+    if (!match) {
+      return cleaned;
+    }
+    const withoutPrefixes = cleaned.slice(match[0].length).trim();
+    return withoutPrefixes ? `Intervento su ${objectName}: ${withoutPrefixes}` : `Intervento su ${objectName}:`;
+  }
+
   private buildFormalDescription(item: InspectionItem, mode: 'GENERATE' | 'FORMALIZE'): string {
     const objectName = item.catalogItemName || 'componente rilevato';
-    const currentDescription = item.formalizedDescription?.trim();
+    const currentDescription = this.originalTechnicalDescription(item);
     if (mode === 'FORMALIZE' && currentDescription) {
       return currentDescription.length < 60
         ? `Si segnala la necessita di intervento su ${currentDescription.toLowerCase()}.`
@@ -213,5 +286,15 @@ export class InspectionService {
       return `E' necessario valutare ${objectName}: ${note.trim()}`;
     }
     return `E' necessario verificare ${objectName} e predisporre l'offerta per materiali e manodopera indicati.`;
+  }
+
+  private messageForStatus(status: number): string {
+    if (status === 401) {
+      return "Sessione scaduta. Effettua nuovamente l'accesso.";
+    }
+    if (status === 403) {
+      return 'Non hai i permessi per visualizzare questi rilievi.';
+    }
+    return 'Impossibile caricare i rilievi. Riprova tra poco.';
   }
 }

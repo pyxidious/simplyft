@@ -1,0 +1,39 @@
+.timeline {
+  display: grid;
+  gap: 14px;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  gap: 12px;
+}
+
+.timeline-item > span {
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: #2563eb;
+}
+
+.timeline-item.success > span {
+  background: #10b981;
+}
+
+.timeline-item.warning > span {
+  background: #f59e0b;
+}
+
+b {
+  color: #0f172a;
+}
+
+p {
+  margin: 4px 0;
+  color: #334155;
+}
+
+small {
+  color: #64748b;
+}

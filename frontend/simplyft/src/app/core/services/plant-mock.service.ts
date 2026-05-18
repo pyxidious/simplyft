@@ -14,7 +14,7 @@ export class PlantMockService {
 
   load(): void {
     this.loading.set(true);
-    this.http.get<Plant[]>('/api/field/plants').subscribe({
+    this.http.get<Plant[]>('/api/tecnico/plants').subscribe({
       next: (plants) => {
         this.plants.set(plants.map((plant) => ({ ...plant, attachments: plant.attachments ?? [] })));
         this.loading.set(false);
@@ -29,13 +29,13 @@ export class PlantMockService {
   getById(id: string): Plant | undefined {
     const cached = this.plants().find((plant) => plant.id === id);
     if (!cached) {
-      this.http.get<Plant>(`/api/field/plants/${id}`).subscribe((plant) => this.plants.update((items) => [plant, ...items]));
+      this.http.get<Plant>(`/api/tecnico/plants/${id}`).subscribe((plant) => this.plants.update((items) => [plant, ...items]));
     }
     return cached;
   }
 
   getById$(id: string): Observable<Plant> {
-    return this.http.get<Plant>(`/api/field/plants/${id}`).pipe(
+    return this.http.get<Plant>(`/api/tecnico/plants/${id}`).pipe(
       tap((plant) => this.plants.update((items) => items.some((item) => item.id === plant.id)
         ? items.map((item) => item.id === plant.id ? plant : item)
         : [plant, ...items]))

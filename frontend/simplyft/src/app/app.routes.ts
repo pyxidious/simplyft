@@ -19,23 +19,28 @@ export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
   { path: 'login', component: LoginComponent },
   {
-    path: 'field',
+    path: 'tecnico',
     component: FieldShellComponent,
     canActivate: [authGuard],
-    data: { roles: ['tecnico', 'amministratore'] },
+    data: { roles: ['tecnico'] },
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'home' },
       { path: 'home', component: FieldHomeComponent },
       { path: 'impianti', component: PlantsListComponent },
       { path: 'impianto/:id', component: PlantDetailComponent },
       { path: 'rilievi', component: InspectionsListComponent },
-      { path: 'nuovo-rilievo', component: NewSurveyComponent },
+      { path: 'rilievi/nuovo', component: NewSurveyComponent },
+      { path: 'rilievi/bozze', component: InspectionsListComponent },
+      { path: 'rilievi/bozze/:id', component: NewSurveyComponent },
+      { path: 'rilievi/:id', component: NewSurveyComponent },
       { path: 'profilo', component: SettingsComponent },
       { path: 'verifica-conferma', component: ReviewConfirmComponent }
     ]
   },
+  { path: 'field/home', redirectTo: 'tecnico/home' },
+  { path: 'field/rilievi', redirectTo: 'tecnico/rilievi' },
   {
-    path: 'office',
+    path: 'commerciale',
     component: AppShellComponent,
     canActivate: [authGuard],
     data: { roles: ['commerciale', 'amministratore'] },
@@ -47,6 +52,11 @@ export const routes: Routes = [
       { path: 'pipeline', component: PipelineComponent }
     ]
   },
+  { path: 'office', redirectTo: 'commerciale/dashboard' },
+  { path: 'office/dashboard', redirectTo: 'commerciale/dashboard' },
+  { path: 'office/preventivi', redirectTo: 'commerciale/preventivi' },
+  { path: 'office/preventivo/:id', redirectTo: 'commerciale/preventivo/:id' },
+  { path: 'office/pipeline', redirectTo: 'commerciale/pipeline' },
   { path: 'settings', component: SettingsComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: 'login' }
 ];

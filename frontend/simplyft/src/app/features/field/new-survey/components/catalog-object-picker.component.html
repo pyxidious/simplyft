@@ -1,0 +1,62 @@
+<section class="survey-panel catalog-picker">
+  <div class="panel-title-row">
+    <div>
+      <p class="eyebrow">Catalogo oggetti</p>
+      <h2>Aggiungi una voce al rilievo</h2>
+    </div>
+    <button class="btn secondary" type="button" (click)="openCreate()">+ Nuovo oggetto</button>
+  </div>
+
+  <label class="search-field compact-search">
+    <input
+      [(ngModel)]="query"
+      (ngModelChange)="search()"
+      placeholder="Cerca oggetto nel catalogo..."
+      aria-label="Cerca oggetto nel catalogo"
+    />
+    <span>⌕</span>
+  </label>
+
+  <div class="catalog-results">
+    <button type="button" *ngFor="let item of results()" (click)="select(item)">
+      <span>
+        <strong>{{ item.name }}</strong>
+        <small>{{ item.categoryName || 'Categoria non indicata' }}</small>
+      </span>
+      <b>{{ item.listMaterialPrice || 0 | currency:'EUR':'symbol':'1.2-2' }}</b>
+    </button>
+  </div>
+
+  <div class="empty-catalog" *ngIf="query.trim() && !loading() && !results().length">
+    <p>Nessun risultato trovato.</p>
+    <button class="btn primary" type="button" (click)="openCreate()">Aggiungi nuovo oggetto</button>
+  </div>
+
+  <div class="modal-backdrop" *ngIf="creating()">
+    <form class="catalog-modal" (ngSubmit)="create()">
+      <header>
+        <h2>Nuovo oggetto catalogo</h2>
+        <button type="button" aria-label="Chiudi" (click)="creating.set(false)">×</button>
+      </header>
+      <label class="field">
+        <span>Nome oggetto</span>
+        <input [(ngModel)]="newName" name="newName" required />
+      </label>
+      <label class="field">
+        <span>Categoria</span>
+        <input [(ngModel)]="newCategory" name="newCategory" list="category-options" required />
+        <datalist id="category-options">
+          <option *ngFor="let category of categories()" [value]="category"></option>
+        </datalist>
+      </label>
+      <label class="field">
+        <span>Descrizione breve</span>
+        <textarea [(ngModel)]="newDescription" name="newDescription"></textarea>
+      </label>
+      <div class="button-row">
+        <button class="btn ghost" type="button" (click)="creating.set(false)">Annulla</button>
+        <button class="btn primary" type="submit" [disabled]="saving() || !newName.trim() || !newCategory.trim()">Salva e seleziona</button>
+      </div>
+    </form>
+  </div>
+</section>

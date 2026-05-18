@@ -5,6 +5,7 @@ import { Component, Input } from '@angular/core';
   selector: 'app-data-table',
   standalone: true,
   imports: [CommonModule],
+  styleUrl: './data-table.component.css',
   template: `
     <div class="table-wrap">
       <table>

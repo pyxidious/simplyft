@@ -7,14 +7,7 @@ import { TopbarComponent } from '../topbar/topbar.component';
   selector: 'app-shell',
   standalone: true,
   imports: [RouterOutlet, SidebarComponent, TopbarComponent],
-  template: `
-    <div class="office-shell">
-      <app-sidebar />
-      <main>
-        <app-topbar />
-        <router-outlet />
-      </main>
-    </div>
-  `
+  templateUrl: './app-shell.component.html',
+  styleUrl: './app-shell.component.css'
 })
 export class AppShellComponent {}

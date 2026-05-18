@@ -1,0 +1,58 @@
+    <section class="technician-home">
+      <header class="tech-topbar">
+        <a class="tech-brand" routerLink="/tecnico/home">Simplyft</a>
+      </header>
+
+      <main class="tech-content">
+        <section class="welcome-row">
+          <div>
+            <p>Bentornato, tecnico</p>
+            <h1>{{ home.home().technician.name }}</h1>
+          </div>
+          <div class="online-pill" [class.offline]="!home.home().technician.online">
+            <span></span>
+            Stato: {{ home.home().technician.online ? 'Online' : 'Offline' }}
+          </div>
+        </section>
+
+        <div class="handoff-confirm tech-confirm" *ngIf="surveys.justSent()">
+          Rilievo inviato al back-office. La dashboard commerciale e stata aggiornata.
+        </div>
+
+        <a class="primary-survey-card" routerLink="/tecnico/rilievi/nuovo">
+          <span class="survey-icon">
+            <span class="checkmark">✓</span>
+          </span>
+          <strong>Nuovo Rilievo</strong>
+          <small>Avvia nuovo rilievo tecnico</small>
+        </a>
+
+        <section class="assigned-section">
+          <div class="tech-section-head">
+            <h2>Attività assegnate</h2>
+            <a routerLink="/tecnico/impianti">Visualizza tutto</a>
+          </div>
+
+          <a class="assigned-card" *ngFor="let activity of home.home().assignedActivities" routerLink="/tecnico/impianti">
+            <span class="activity-icon" [class.safety]="activity.type === 'safety'">
+              {{ iconFor(activity) }}
+            </span>
+            <span class="activity-copy">
+              <b>#{{ activity.code }}</b>
+              <strong>{{ activity.title }}</strong>
+              <small>{{ activity.location }}</small>
+            </span>
+            <span class="chevron">›</span>
+          </a>
+        </section>
+
+        <article class="system-notice">
+          <div>
+            <p><span>i</span> Notifica di sistema</p>
+            <h2>{{ home.home().notification.title }}</h2>
+            <small>{{ home.home().notification.message }}</small>
+          </div>
+          <span class="notice-watermark">✓</span>
+        </article>
+      </main>
+    </section>

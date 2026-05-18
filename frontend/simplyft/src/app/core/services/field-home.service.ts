@@ -49,7 +49,7 @@ export class FieldHomeService {
 
   load(): void {
     this.loading.set(true);
-    this.http.get<FieldHomeData>('/api/field/home').pipe(
+    this.http.get<FieldHomeData>('/api/tecnico/home').pipe(
       tap((home) => this.home.set(home)),
       catchError(() => of(EMPTY_HOME)),
       tap(() => this.loading.set(false))

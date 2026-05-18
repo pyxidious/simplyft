@@ -1,0 +1,457 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.18), transparent 34%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #0f172a;
+}
+
+.technician-home {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* TOPBAR */
+
+.tech-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  min-height: 68px;
+  padding: 14px 16px;
+  padding-top: calc(14px + env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(248, 250, 252, 0.86);
+  border-bottom: 1px solid rgba(203, 213, 225, 0.65);
+  backdrop-filter: blur(16px);
+  box-sizing: border-box;
+}
+
+.tech-brand {
+  color: #111827;
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  text-decoration: none;
+}
+
+.sync-button {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #2563eb;
+  text-decoration: none;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.sync-button:active {
+  transform: scale(0.96);
+  box-shadow: none;
+}
+
+.sync-glyph {
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* CONTENT */
+
+.tech-content {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 22px 16px 34px;
+  padding-bottom: calc(34px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+/* WELCOME */
+
+.welcome-row {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.welcome-row p {
+  margin: 0 0 4px;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.welcome-row h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: clamp(2rem, 9vw, 2.7rem);
+  line-height: 1;
+  letter-spacing: -0.06em;
+}
+
+.online-pill {
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #bbf7d0;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.online-pill span {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.16);
+}
+
+.online-pill.offline {
+  background: #f8fafc;
+  color: #64748b;
+  border-color: #cbd5e1;
+}
+
+.online-pill.offline span {
+  background: #94a3b8;
+  box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.16);
+}
+
+/* CONFIRM MESSAGE */
+
+.handoff-confirm,
+.tech-confirm {
+  margin: 18px 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #bbf7d0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+/* PRIMARY CARD */
+
+.primary-survey-card {
+  margin: 20px 0 28px;
+  min-height: 160px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: 30px;
+  text-align: center;
+  text-decoration: none;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.32), transparent 34%),
+    linear-gradient(135deg, #2563eb, #4f46e5);
+  box-shadow: 0 22px 44px rgba(37, 99, 235, 0.28);
+  box-sizing: border-box;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.primary-survey-card:active {
+  transform: scale(0.985);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.24);
+}
+
+.survey-icon {
+  width: 62px;
+  height: 62px;
+  margin-bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.checkmark {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #2563eb;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.primary-survey-card strong {
+  font-size: 1.55rem;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.primary-survey-card small {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.92rem;
+}
+
+/* ASSIGNED */
+
+.assigned-section {
+  margin-top: 8px;
+}
+
+.tech-section-head {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.tech-section-head h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+}
+
+.tech-section-head a {
+  flex: 0 0 auto;
+  color: #2563eb;
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.assigned-card {
+  width: 100%;
+  min-height: 84px;
+  margin-bottom: 12px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  text-decoration: none;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+  box-sizing: border-box;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.assigned-card:active {
+  transform: scale(0.985);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+}
+
+.activity-icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.activity-icon.safety {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.activity-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.activity-copy b {
+  color: #2563eb;
+  font-size: 0.78rem;
+  line-height: 1.1;
+}
+
+.activity-copy strong {
+  color: #0f172a;
+  font-size: 0.98rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activity-copy small {
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  flex: 0 0 auto;
+  color: #94a3b8;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+/* NOTICE */
+
+.system-notice {
+  position: relative;
+  margin-top: 24px;
+  padding: 20px;
+  overflow: hidden;
+  border-radius: 26px;
+  background: #111827;
+  color: #ffffff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+}
+
+.system-notice p {
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #bfdbfe;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.system-notice p span {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.system-notice h2 {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+  line-height: 1.18;
+  letter-spacing: -0.035em;
+}
+
+.system-notice small {
+  position: relative;
+  z-index: 1;
+  display: block;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.notice-watermark {
+  position: absolute;
+  right: -8px;
+  bottom: -20px;
+  color: rgba(255, 255, 255, 0.08);
+  font-size: 8rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* SCHERMI MOLTO PICCOLI */
+
+@media (max-width: 360px) {
+  .tech-content {
+    padding-inline: 12px;
+  }
+
+  .tech-topbar {
+    padding-inline: 12px;
+  }
+
+  .primary-survey-card {
+    min-height: 146px;
+    padding: 22px 16px;
+    border-radius: 26px;
+  }
+
+  .assigned-card {
+    padding: 12px;
+    border-radius: 20px;
+  }
+
+  .activity-icon {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+    border-radius: 16px;
+  }
+}
+
+/* TABLET / DESKTOP */
+
+@media (min-width: 768px) {
+  .tech-content {
+    max-width: 680px;
+    padding-top: 34px;
+  }
+
+  .welcome-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .online-pill {
+    align-self: center;
+  }
+
+  .primary-survey-card {
+    min-height: 190px;
+  }
+
+  .assigned-card:hover,
+  .sync-button:hover,
+  .primary-survey-card:hover {
+    transform: translateY(-2px);
+  }
+}

@@ -83,6 +83,7 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO utenti (nome, email, password_hash, ruolo, titolo, attivo) VALUES
     ('Luca Bianchi', 'tecnico@simplyft.local', '$2a$10$7EqJtq98hPqEX7fNZaFWoOhi/jOHysVsRMsjF3TfgQ3Ex2l2N5EHC', 'tecnico', 'Tecnico Senior Area Nord', TRUE),
+    ('Mario Rossi', 'tecnico2@simplyft.local', '$2a$10$7EqJtq98hPqEX7fNZaFWoOhi/jOHysVsRMsjF3TfgQ3Ex2l2N5EHC', 'tecnico', 'Tecnico Area Est', TRUE),
     ('Giulia Conti', 'commerciale@simplyft.local', '$2a$10$7EqJtq98hPqEX7fNZaFWoOhi/jOHysVsRMsjF3TfgQ3Ex2l2N5EHC', 'commerciale', 'Back-office commerciale', TRUE),
     ('Admin Simplyft', 'admin@simplyft.local', '$2a$10$7EqJtq98hPqEX7fNZaFWoOhi/jOHysVsRMsjF3TfgQ3Ex2l2N5EHC', 'amministratore', 'Amministratore', TRUE)
 ON CONFLICT (email) DO UPDATE SET

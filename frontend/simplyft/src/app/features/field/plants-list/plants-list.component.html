@@ -1,0 +1,41 @@
+<section class="plants-page">
+  <header class="page-topbar">
+    <a routerLink="/tecnico/home" aria-label="Torna alla home">‹</a>
+    <h1>Impianti</h1>
+    <span></span>
+  </header>
+
+  <main class="page-content">
+    <section class="page-hero">
+      <p class="eyebrow">Clienti e impianti</p>
+      <h2>Lista impianti</h2>
+      <span>Consulta gli impianti assegnati e avvia il rilievo tecnico dal dettaglio.</span>
+    </section>
+
+    <section class="filters" aria-label="Filtri impianti">
+      <input [ngModel]="query()" (ngModelChange)="query.set($event)" placeholder="Cerca cliente, codice, marca" />
+      <select [ngModel]="status()" (ngModelChange)="status.set($event)">
+        <option value="all">Tutti</option>
+        <option value="complete">Completo</option>
+        <option value="incomplete">Incompleto</option>
+        <option value="needs-review">Richiede verifica</option>
+      </select>
+    </section>
+
+    <article class="plant-card" *ngFor="let plant of plants.search(query(), status())">
+      <div class="plant-copy">
+        <b>{{ plant.customer }}</b>
+        <p>{{ plant.code }} - {{ plant.brand }} {{ plant.model }}</p>
+        <small>Ultimo rilievo {{ plant.lastSurvey }}</small>
+      </div>
+      <div class="card-actions">
+        <app-status-badge [label]="label(plant.status)" [tone]="tone(plant.status)" />
+        <a class="btn ghost" [routerLink]="['/tecnico/impianto', plant.id]">Apri dettaglio</a>
+      </div>
+    </article>
+
+    <div class="empty-state" *ngIf="!plants.search(query(), status()).length">
+      Nessun impianto trovato con i filtri selezionati.
+    </div>
+  </main>
+</section>

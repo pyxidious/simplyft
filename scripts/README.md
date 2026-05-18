@@ -40,10 +40,25 @@ Stop it with:
 ./scripts/stop-environment.sh
 ```
 
+Reload only the frontend with:
+
+```bash
+./reload-frontend.sh
+```
+
+Manage the Angular frontend container with content-change aware rebuilds:
+
+```bash
+./frontend-angular.sh start
+./frontend-angular.sh reload
+./frontend-angular.sh watch
+./frontend-angular.sh stop
+```
+
 If needed, make it executable first:
 
 ```bash
-chmod +x scripts/start-environment.sh scripts/stop-environment.sh
+chmod +x frontend-angular.sh reload-frontend.sh scripts/start-environment.sh scripts/stop-environment.sh scripts/reload-frontend.sh
 ```
 
 ## Options
@@ -54,5 +69,7 @@ chmod +x scripts/start-environment.sh scripts/stop-environment.sh
 - Linux/macOS: `--no-build` skips image rebuilds.
 - Linux/macOS: `--follow-logs` follows Docker Compose logs after startup.
 - Linux/macOS: `--volumes` removes Docker Compose volumes while stopping, deleting local database/model data.
+- Frontend reload: `--follow-logs` follows only frontend logs after recreation.
+- Angular frontend manager: `--force` rebuilds even without content changes; `--follow-logs` follows frontend logs; `--interval SECONDS` changes watch polling.
 
 The start scripts create `.env` from `.env.example` when `.env` does not exist, then run Docker Compose in detached mode. The stop scripts run `docker compose down` by default.

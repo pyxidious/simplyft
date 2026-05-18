@@ -1,0 +1,144 @@
+    <section class="survey-workspace">
+      <header class="survey-topbar">
+        <a routerLink="/tecnico/rilievi" aria-label="Torna ai rilievi">‹</a>
+        <h1>{{ readOnly() ? 'Dettaglio Rilievo' : (draftId() ? 'Modifica Bozza' : 'Nuovo Rilievo') }}</h1>
+      </header>
+
+      <main class="survey-content inspection-content">
+        <div class="empty-state large-empty" *ngIf="loadingDraft()">Caricamento rilievo in corso...</div>
+        <div class="feedback success-feedback" *ngIf="feedback()">{{ feedback() }}</div>
+        <div class="feedback error-feedback" *ngIf="errors().length">
+          <strong>Controlla prima di inviare</strong>
+          <p *ngFor="let error of errors()">{{ error }}</p>
+        </div>
+
+        <section class="readonly-context" *ngIf="readOnly()">
+          <div>
+            <p class="eyebrow">Rilievo inviato</p>
+            <h2>{{ selectedCustomer()?.customerName || 'Cliente non disponibile' }}</h2>
+            <span class="status-badge success">{{ inspectionStatus() }}</span>
+          </div>
+          <dl>
+            <div>
+              <dt>Impianto</dt>
+              <dd>{{ selectedCustomer()?.plantCode || 'Codice non disponibile' }}</dd>
+            </div>
+            <div>
+              <dt>Indirizzo</dt>
+              <dd>{{ selectedCustomer()?.address || 'Indirizzo non disponibile' }}</dd>
+            </div>
+            <div>
+              <dt>Tecnico</dt>
+              <dd>{{ technicianName() || 'Tecnico non disponibile' }}</dd>
+            </div>
+            <div>
+              <dt>Creato</dt>
+              <dd>{{ createdAt() | date:'dd/MM/yyyy HH:mm' }}</dd>
+            </div>
+            <div>
+              <dt>Ultima modifica</dt>
+              <dd>{{ updatedAt() | date:'dd/MM/yyyy HH:mm' }}</dd>
+            </div>
+            <div>
+              <dt>Invio</dt>
+              <dd>{{ submittedAt() | date:'dd/MM/yyyy HH:mm' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <app-customer-plant-selector
+          *ngIf="!readOnly()"
+          [selected]="selectedCustomer()"
+          (selectedChange)="selectCustomer($event)"
+        />
+
+        <section class="survey-metrics sticky-summary" aria-label="Riepilogo rilievo">
+          <article class="metric-card">
+            <span>Totale ore</span>
+            <strong>{{ totalLaborHours() | number:'1.0-2' }}h</strong>
+          </article>
+          <article class="metric-card warm">
+            <span>Materiali</span>
+            <strong>{{ totalMaterialCost() | currency:'EUR':'symbol':'1.2-2' }}</strong>
+          </article>
+        </section>
+
+        <app-catalog-object-picker *ngIf="!readOnly()" (itemSelected)="requestAddItem($event)" />
+
+        <section class="inserted-section">
+          <div class="survey-section-title">
+            <h2>Oggetti rilevati</h2>
+            <small>{{ items().length }} {{ items().length === 1 ? 'voce' : 'voci' }}</small>
+          </div>
+
+          <div class="empty-state large-empty" *ngIf="!items().length">
+            {{ readOnly() ? 'Nessuna voce presente nel rilievo inviato.' : 'Aggiungi almeno un oggetto dal catalogo per iniziare il rilievo.' }}
+          </div>
+
+          <app-inspection-item-card
+            *ngFor="let item of items(); trackBy: trackItem"
+            [item]="item"
+            [readOnly]="readOnly()"
+            (itemChange)="updateItem($event)"
+            (remove)="requestRemoveItem($event)"
+            (duplicate)="duplicateItem($event)"
+          />
+        </section>
+
+        <div class="mobile-page-actions" aria-label="Azioni rilievo corrente">
+          <button type="button" routerLink="/tecnico/rilievi" title="Elenco rilievi" aria-label="Elenco rilievi">
+            <span>▤</span>
+            <small>Elenco</small>
+          </button>
+          <button type="button" (click)="scrollToCatalog()" title="Aggiungi voce" aria-label="Aggiungi voce" *ngIf="!readOnly()">
+            <span>＋</span>
+            <small>Voce</small>
+          </button>
+          <button type="button" (click)="saveDraft()" [disabled]="saving()" title="Salva bozza" aria-label="Salva bozza" *ngIf="!readOnly()">
+            <span>{{ saving() ? '…' : '▣' }}</span>
+            <small>Bozza</small>
+          </button>
+          <button type="button" class="primary-action" (click)="requestSubmit()" [disabled]="saving()" title="Invia al commerciale" aria-label="Invia al commerciale" *ngIf="!readOnly()">
+            <span>{{ saving() ? '…' : '➤' }}</span>
+            <small>Invia</small>
+          </button>
+        </div>
+      </main>
+
+      <div class="sheet-backdrop" *ngIf="pendingCatalogItem()" (click)="pendingCatalogItem.set(undefined)">
+        <section class="bottom-sheet" (click)="$event.stopPropagation()">
+          <span class="sheet-handle"></span>
+          <h2>Aggiungi voce</h2>
+          <p>Vuoi aggiungere "{{ pendingCatalogItem()?.name }}" al rilievo?</p>
+          <div class="sheet-actions">
+            <button class="btn ghost" type="button" (click)="pendingCatalogItem.set(undefined)">Annulla</button>
+            <button class="btn primary" type="button" (click)="confirmAddItem()">Aggiungi</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="sheet-backdrop" *ngIf="pendingRemoveItem()" (click)="pendingRemoveItem.set(undefined)">
+        <section class="bottom-sheet" (click)="$event.stopPropagation()">
+          <span class="sheet-handle"></span>
+          <h2>Rimuovi voce</h2>
+          <p>Vuoi rimuovere "{{ pendingRemoveItem()?.catalogItemName }}" dal rilievo?</p>
+          <div class="sheet-actions">
+            <button class="btn ghost" type="button" (click)="pendingRemoveItem.set(undefined)">Annulla</button>
+            <button class="btn danger" type="button" (click)="confirmRemoveItem()">Rimuovi</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="sheet-backdrop" *ngIf="submitSheetOpen()" (click)="submitSheetOpen.set(false)">
+        <section class="bottom-sheet" (click)="$event.stopPropagation()">
+          <span class="sheet-handle"></span>
+          <h2>Invia al commerciale</h2>
+          <p>Il rilievo diventera visibile al commerciale. Confermi l'invio?</p>
+          <p class="sheet-warning" *ngIf="hasPendingOperations()">Alcune elaborazioni IA o vocali sono ancora in corso.</p>
+          <div class="sheet-actions">
+            <button class="btn ghost" type="button" (click)="submitSheetOpen.set(false)" [disabled]="saving()">Annulla</button>
+            <button class="btn primary" type="button" (click)="submit()" [disabled]="saving()">{{ saving() ? 'Invio...' : 'Invia' }}</button>
+          </div>
+        </section>
+      </div>
+    </section>

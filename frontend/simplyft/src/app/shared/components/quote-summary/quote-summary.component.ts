@@ -5,6 +5,7 @@ import { Component, Input } from '@angular/core';
   selector: 'app-quote-summary',
   standalone: true,
   imports: [CommonModule, CurrencyPipe],
+  styleUrl: './quote-summary.component.css',
   template: `
     <aside class="card quote-summary">
       <p class="muted">Riepilogo economico</p>

@@ -1,0 +1,32 @@
+.status-badge {
+  min-height: 28px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.74rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.success {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.warning {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.danger {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.info {
+  background: #eff6ff;
+  color: #2563eb;
+}

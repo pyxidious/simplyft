@@ -1,0 +1,13 @@
+<section class="commercial-page">
+  <div class="section-head">
+    <div>
+      <p>Pipeline</p>
+      <h2>Pipeline preventivi</h2>
+    </div>
+    <span>Kanban commerciale aggiornato dai rilievi campo</span>
+  </div>
+
+  <section class="kanban-panel">
+    <app-kanban-board [columns]="pipeline.grouped()" />
+  </section>
+</section>

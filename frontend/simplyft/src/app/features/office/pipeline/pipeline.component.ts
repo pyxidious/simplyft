@@ -6,12 +6,8 @@ import { PipelineMockService } from '../../../core/services/pipeline-mock.servic
   selector: 'app-pipeline',
   standalone: true,
   imports: [KanbanBoardComponent],
-  template: `
-    <section class="office-page">
-      <div class="section-head"><h2>Pipeline preventivi</h2><span class="muted">Kanban commerciale aggiornato dai rilievi campo</span></div>
-      <app-kanban-board [columns]="pipeline.grouped()" />
-    </section>
-  `
+  templateUrl: './pipeline.component.html',
+  styleUrl: './pipeline.component.css'
 })
 export class PipelineComponent {
   constructor(public pipeline: PipelineMockService) {}

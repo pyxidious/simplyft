@@ -168,9 +168,13 @@ CREATE TABLE IF NOT EXISTS rilievi_righe (
     costo_materiale DECIMAL(10,2) DEFAULT 0,
     nota_grezza TEXT,
     trascrizione TEXT,
+    descrizione_tecnica_originale TEXT,
     descrizione_formalizzata TEXT,
     creato_il TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE rilievi_righe
+    ADD COLUMN IF NOT EXISTS descrizione_tecnica_originale TEXT;
 
 CREATE TABLE IF NOT EXISTS trascrizioni_audio (
     id BIGSERIAL PRIMARY KEY,

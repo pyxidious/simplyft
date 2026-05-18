@@ -25,6 +25,7 @@ public class DemoUserSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         upsert("Luca Bianchi", "tecnico@simplyft.local", "tecnico", "Tecnico Senior Area Nord");
+        upsert("Mario Rossi", "tecnico2@simplyft.local", "tecnico", "Tecnico Area Est");
         upsert("Giulia Conti", "commerciale@simplyft.local", "commerciale", "Back-office commerciale");
         upsert("Admin Simplyft", "admin@simplyft.local", "amministratore", "Amministratore");
     }

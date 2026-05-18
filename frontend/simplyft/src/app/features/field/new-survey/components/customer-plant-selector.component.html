@@ -1,0 +1,46 @@
+<section class="survey-panel selection-panel">
+  <div class="panel-title-row">
+    <div>
+      <p class="eyebrow">Cliente / impianto</p>
+      <h2>Seleziona il contesto del rilievo</h2>
+    </div>
+    <span class="status-badge success" *ngIf="selected">Selezionato</span>
+  </div>
+
+  <label class="search-field compact-search">
+    <input
+      [(ngModel)]="query"
+      (ngModelChange)="search()"
+      placeholder="Cerca per nome, matricola o impianto..."
+      aria-label="Cerca cliente, matricola o impianto"
+    />
+    <span>⌕</span>
+  </label>
+
+  <button class="selected-plant selected-plant-clear" type="button" *ngIf="selected" aria-pressed="true">
+    <span class="plant-icon">▦</span>
+    <span>
+      <strong>{{ selected.customerName }}</strong>
+      <small>{{ selected.plantCode || 'Codice non disponibile' }} · {{ selected.address || selected.type || 'Dettaglio impianto non disponibile' }}</small>
+    </span>
+  </button>
+
+  <div class="result-list" *ngIf="query.trim() && results().length">
+    <button
+      type="button"
+      *ngFor="let customer of results()"
+      (click)="choose(customer)"
+      [class.selected]="selected?.id === customer.id"
+      [attr.aria-pressed]="selected?.id === customer.id"
+    >
+      <span>
+        <strong>{{ customer.customerName }}</strong>
+        <small>{{ customer.plantCode || customer.serial }} · {{ customer.address }}</small>
+      </span>
+      <b>Seleziona</b>
+    </button>
+  </div>
+
+  <p class="empty-state" *ngIf="query.trim() && !loading() && !results().length">Nessun impianto trovato.</p>
+  <p class="muted loading-line" *ngIf="loading()">Ricerca in corso...</p>
+</section>

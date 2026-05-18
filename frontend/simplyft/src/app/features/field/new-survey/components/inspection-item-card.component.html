@@ -1,0 +1,111 @@
+   <article class="inspection-item-card compact-item-card">
+      <header>
+        <div>
+          <p class="eyebrow">Voce rilievo</p>
+          <h3>{{ item.catalogItemName }}</h3>
+          <small>{{ item.categoryName || 'Categoria non indicata' }}</small>
+        </div>
+        <div class="item-menu" *ngIf="!readOnly">
+          <button type="button" title="Duplica voce" aria-label="Duplica voce" (click)="duplicate.emit(item)">⧉</button>
+          <button type="button" title="Rimuovi voce" aria-label="Rimuovi voce" class="danger-icon" (click)="remove.emit(item)">⌫</button>
+        </div>
+      </header>
+
+      <div class="item-fields">
+        <label class="field">
+          <span>Ore</span>
+          <input type="number" min="0" step="0.25" [(ngModel)]="item.laborHours" (ngModelChange)="changed()" [readonly]="readOnly" />
+        </label>
+        <label class="field">
+          <span>Materiale</span>
+          <input type="number" min="0" step="0.01" [(ngModel)]="item.materialCost" (ngModelChange)="changed()" [readonly]="readOnly" />
+        </label>
+      </div>
+
+      <section class="photo-section">
+        <div class="photo-strip" *ngIf="item.photos.length">
+          <figure *ngFor="let photo of item.photos; let index = index">
+            <img *ngIf="photo.url" [src]="photo.url" [alt]="photo.fileName" />
+            <figcaption>{{ photo.fileName }}</figcaption>
+            <button type="button" (click)="removePhoto(index)" *ngIf="!readOnly">Rimuovi</button>
+          </figure>
+        </div>
+        <label class="attach-button compact-attach" *ngIf="!readOnly">
+          <input type="file" accept="image/*" capture="environment" (change)="addPhoto($event)" />
+          <span>▣</span>
+          <b>{{ item.photos.length ? 'Aggiungi foto' : 'Scatta foto' }}</b>
+        </label>
+      </section>
+
+      <section class="ai-section">
+        <label class="field">
+          <span>Descrizione commerciale</span>
+          <textarea [(ngModel)]="item.formalizedDescription" (ngModelChange)="changed()" [readonly]="readOnly" placeholder="Sintesi chiara per commerciale o segreteria..."></textarea>
+        </label>
+        <button class="btn secondary wide compact-ai-button" type="button" (click)="formalizeDescription()" [disabled]="busyDescription()" *ngIf="!readOnly">
+          <span>✧</span>
+          {{ busyDescription() ? 'Elaborazione IA...' : aiButtonLabel() }}
+        </button>
+      </section>
+
+      <section class="voice-section voice-recorder" [class.recording]="voiceState() === 'recording'" *ngIf="!readOnly || item.transcribedNote || item.rawNote">
+        <div class="voice-recorder-top">
+          <button
+            *ngIf="!readOnly"
+            type="button"
+            class="mic-button"
+            [class.stop]="voiceState() === 'recording'"
+            (click)="toggleRecording()"
+            [disabled]="voiceState() === 'transcribing' || voiceState() === 'formalizing'"
+            [attr.aria-label]="voiceState() === 'recording' ? 'Ferma registrazione' : 'Registra nota vocale'"
+          >
+            {{ voiceState() === 'recording' ? '■' : '●' }}
+          </button>
+          <div>
+            <strong>{{ voiceTitle() }}</strong>
+            <small>{{ voiceSubtitle() }}</small>
+          </div>
+          <span class="voice-timer">{{ formattedDuration() }}</span>
+        </div>
+
+        <div class="voice-player" *ngIf="audioUrl()">
+          <audio [src]="audioUrl()" controls></audio>
+          <button type="button" class="btn ghost danger-text" (click)="resetRecording()">Elimina</button>
+        </div>
+
+        <button class="btn primary wide" type="button" *ngIf="voiceState() === 'recorded'" (click)="processRecording()">
+          Elabora nota vocale
+        </button>
+
+        <p class="voice-error" *ngIf="voiceState() === 'error'">{{ voiceError() }}</p>
+
+        <details class="transcript-box" *ngIf="item.transcribedNote">
+          <summary>Trascrizione Whisper</summary>
+          <textarea [(ngModel)]="item.transcribedNote" (ngModelChange)="changed()" [readonly]="readOnly"></textarea>
+        </details>
+
+        <div class="formalized-note" *ngIf="formalizedVoiceText()">
+          <span>Nota formalizzata</span>
+          <p>{{ formalizedVoiceText() }}</p>
+          <button class="btn secondary wide" type="button" (click)="openApplySheet()" *ngIf="!readOnly">Applica alla descrizione</button>
+        </div>
+
+        <label class="field">
+          <span>Nota tecnica libera</span>
+          <textarea [(ngModel)]="item.rawNote" (ngModelChange)="changed()" [readonly]="readOnly" placeholder="Aggiungi dettagli rilevati sul campo..."></textarea>
+        </label>
+      </section>
+
+      <div class="sheet-backdrop" *ngIf="applySheetOpen()" (click)="applySheetOpen.set(false)">
+        <section class="bottom-sheet" (click)="$event.stopPropagation()">
+          <span class="sheet-handle"></span>
+          <h2>Applica nota vocale</h2>
+          <p>La descrizione commerciale contiene gia testo. Come vuoi usare la nota formalizzata?</p>
+          <div class="sheet-actions stacked">
+            <button class="btn primary" type="button" (click)="applyVoiceText('replace')">Sostituisci</button>
+            <button class="btn secondary" type="button" (click)="applyVoiceText('append')">Aggiungi in coda</button>
+            <button class="btn ghost" type="button" (click)="applySheetOpen.set(false)">Annulla</button>
+          </div>
+        </section>
+      </div>
+    </article>

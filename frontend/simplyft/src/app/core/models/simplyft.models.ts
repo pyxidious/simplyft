@@ -68,6 +68,7 @@ export interface InspectionItem {
   photos: InspectionAttachment[];
   rawNote?: string;
   transcribedNote?: string;
+  originalTechnicalDescription?: string;
   formalizedDescription?: string;
   pendingOperation?: boolean;
 }
@@ -78,7 +79,7 @@ export interface InspectionDraft {
   customerName: string;
   plantCode?: string;
   plantAddress?: string;
-  status: 'DRAFT' | 'SUBMITTED';
+  status: 'DRAFT' | 'SUBMITTED' | 'IN_REVIEW' | 'COMMERCIAL_REVIEW';
   technicianId: string;
   technicianName: string;
   items: InspectionItem[];

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, OnInit, computed, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CatalogItem, CustomerPlant, InspectionDraft, InspectionItem } from '../../../core/models/simplyft.models';
 import { AuthService } from '../../../core/services/auth.service';
 import { InspectionService } from '../../../core/services/inspection.service';
@@ -10,126 +10,25 @@ import { InspectionItemCardComponent } from './components/inspection-item-card.c
 
 @Component({
   selector: 'app-new-survey',
-  standalone: true,
-  imports: [
-    CommonModule,
-    RouterLink,
-    CustomerPlantSelectorComponent,
-    CatalogObjectPickerComponent,
-    InspectionItemCardComponent
-  ],
-  template: `
-    <section class="survey-workspace">
-      <header class="survey-topbar">
-        <a routerLink="/field/rilievi" aria-label="Torna ai rilievi">‹</a>
-        <h1>Nuovo Rilievo</h1>
-        <a routerLink="/settings" aria-label="Sincronizzazione">↕</a>
-      </header>
-
-      <main class="survey-content inspection-content">
-        <div class="feedback success-feedback" *ngIf="feedback()">{{ feedback() }}</div>
-        <div class="feedback error-feedback" *ngIf="errors().length">
-          <strong>Controlla prima di inviare</strong>
-          <p *ngFor="let error of errors()">{{ error }}</p>
-        </div>
-
-        <app-customer-plant-selector
-          [selected]="selectedCustomer()"
-          (selectedChange)="selectCustomer($event)"
-        />
-
-        <section class="survey-metrics sticky-summary" aria-label="Riepilogo rilievo">
-          <article class="metric-card">
-            <span>Totale ore</span>
-            <strong>{{ totalLaborHours() | number:'1.0-2' }}h</strong>
-          </article>
-          <article class="metric-card warm">
-            <span>Materiali</span>
-            <strong>{{ totalMaterialCost() | currency:'EUR':'symbol':'1.2-2' }}</strong>
-          </article>
-        </section>
-
-        <app-catalog-object-picker (itemSelected)="requestAddItem($event)" />
-
-        <section class="inserted-section">
-          <div class="survey-section-title">
-            <h2>Oggetti rilevati</h2>
-            <small>{{ items().length }} {{ items().length === 1 ? 'voce' : 'voci' }}</small>
-          </div>
-
-          <div class="empty-state large-empty" *ngIf="!items().length">
-            Aggiungi almeno un oggetto dal catalogo per iniziare il rilievo.
-          </div>
-
-          <app-inspection-item-card
-            *ngFor="let item of items(); trackBy: trackItem"
-            [item]="item"
-            (itemChange)="updateItem($event)"
-            (remove)="requestRemoveItem($event)"
-            (duplicate)="duplicateItem($event)"
-          />
-        </section>
-
-        <div class="mobile-page-actions" aria-label="Azioni rilievo corrente">
-          <button type="button" routerLink="/field/rilievi" title="Elenco rilievi" aria-label="Elenco rilievi">
-            <span>▤</span>
-            <small>Elenco</small>
-          </button>
-          <button type="button" (click)="scrollToCatalog()" title="Aggiungi voce" aria-label="Aggiungi voce">
-            <span>＋</span>
-            <small>Voce</small>
-          </button>
-          <button type="button" (click)="saveDraft()" [disabled]="saving()" title="Salva bozza" aria-label="Salva bozza">
-            <span>{{ saving() ? '…' : '▣' }}</span>
-            <small>Bozza</small>
-          </button>
-          <button type="button" class="primary-action" (click)="requestSubmit()" [disabled]="saving()" title="Invia al commerciale" aria-label="Invia al commerciale">
-            <span>{{ saving() ? '…' : '➤' }}</span>
-            <small>Invia</small>
-          </button>
-        </div>
-      </main>
-
-      <div class="sheet-backdrop" *ngIf="pendingCatalogItem()" (click)="pendingCatalogItem.set(undefined)">
-        <section class="bottom-sheet" (click)="$event.stopPropagation()">
-          <span class="sheet-handle"></span>
-          <h2>Aggiungi voce</h2>
-          <p>Vuoi aggiungere "{{ pendingCatalogItem()?.name }}" al rilievo?</p>
-          <div class="sheet-actions">
-            <button class="btn ghost" type="button" (click)="pendingCatalogItem.set(undefined)">Annulla</button>
-            <button class="btn primary" type="button" (click)="confirmAddItem()">Aggiungi</button>
-          </div>
-        </section>
-      </div>
-
-      <div class="sheet-backdrop" *ngIf="pendingRemoveItem()" (click)="pendingRemoveItem.set(undefined)">
-        <section class="bottom-sheet" (click)="$event.stopPropagation()">
-          <span class="sheet-handle"></span>
-          <h2>Rimuovi voce</h2>
-          <p>Vuoi rimuovere "{{ pendingRemoveItem()?.catalogItemName }}" dal rilievo?</p>
-          <div class="sheet-actions">
-            <button class="btn ghost" type="button" (click)="pendingRemoveItem.set(undefined)">Annulla</button>
-            <button class="btn danger" type="button" (click)="confirmRemoveItem()">Rimuovi</button>
-          </div>
-        </section>
-      </div>
-
-      <div class="sheet-backdrop" *ngIf="submitSheetOpen()" (click)="submitSheetOpen.set(false)">
-        <section class="bottom-sheet" (click)="$event.stopPropagation()">
-          <span class="sheet-handle"></span>
-          <h2>Invia al commerciale</h2>
-          <p>Il rilievo diventera visibile al commerciale. Confermi l'invio?</p>
-          <p class="sheet-warning" *ngIf="hasPendingOperations()">Alcune elaborazioni IA o vocali sono ancora in corso.</p>
-          <div class="sheet-actions">
-            <button class="btn ghost" type="button" (click)="submitSheetOpen.set(false)">Annulla</button>
-            <button class="btn primary" type="button" (click)="submit()">Invia</button>
-          </div>
-        </section>
-      </div>
-    </section>
-  `
+    imports: [
+      CommonModule,
+      RouterLink,
+      CustomerPlantSelectorComponent,
+      CatalogObjectPickerComponent,
+      InspectionItemCardComponent
+    ],
+  templateUrl: './new-survey.component.html',
+  styleUrl: './new-survey.component.css'
 })
-export class NewSurveyComponent {
+
+export class NewSurveyComponent implements OnInit {
+  draftId = signal<string | undefined>(undefined);
+  loadingDraft = signal(false);
+  inspectionStatus = signal<InspectionDraft['status']>('DRAFT');
+  createdAt = signal<string | undefined>(undefined);
+  updatedAt = signal<string | undefined>(undefined);
+  submittedAt = signal<string | undefined>(undefined);
+  technicianName = signal('');
   selectedCustomer = signal<CustomerPlant | undefined>(undefined);
   items = signal<InspectionItem[]>([]);
   saving = signal(false);
@@ -141,23 +40,58 @@ export class NewSurveyComponent {
 
   totalLaborHours = computed(() => this.items().reduce((sum, item) => sum + this.asNumber(item.laborHours), 0));
   totalMaterialCost = computed(() => this.items().reduce((sum, item) => sum + this.asNumber(item.materialCost), 0));
+  readOnly = computed(() => this.inspectionStatus() !== 'DRAFT');
 
   constructor(
+    private route: ActivatedRoute,
     private router: Router,
-    private auth: AuthService,
+    public auth: AuthService,
     private inspections: InspectionService
   ) {}
 
+  ngOnInit(): void {
+    const id = this.route.snapshot.paramMap.get('id') ?? undefined;
+    if (!id) {
+      return;
+    }
+    this.draftId.set(id);
+    this.loadingDraft.set(true);
+    const request = this.router.url.includes('/bozze/')
+      ? this.inspections.getDraft(id)
+      : this.inspections.getInspection(id);
+    request.subscribe({
+      next: (draft) => {
+        this.populateDraft(draft);
+        this.loadingDraft.set(false);
+      },
+      error: (error) => {
+        this.loadingDraft.set(false);
+        this.errors.set([error.status === 403 || error.status === 404
+          ? 'Bozza non trovata o non accessibile con questo tecnico.'
+          : 'Impossibile caricare la bozza.']);
+      }
+    });
+  }
+
   selectCustomer(customer: CustomerPlant): void {
+    if (this.readOnly()) {
+      return;
+    }
     this.selectedCustomer.set(customer);
     this.errors.set([]);
   }
 
   requestAddItem(catalogItem: CatalogItem): void {
+    if (this.readOnly()) {
+      return;
+    }
     this.pendingCatalogItem.set(catalogItem);
   }
 
   confirmAddItem(): void {
+    if (this.readOnly()) {
+      return;
+    }
     const catalogItem = this.pendingCatalogItem();
     if (!catalogItem) {
       return;
@@ -170,6 +104,7 @@ export class NewSurveyComponent {
       laborHours: catalogItem.standardLaborHours ?? 0,
       materialCost: catalogItem.listMaterialPrice ?? 0,
       photos: [],
+      originalTechnicalDescription: catalogItem.shortDescription,
       formalizedDescription: catalogItem.shortDescription
     };
     this.items.update((items) => [item, ...items]);
@@ -179,14 +114,23 @@ export class NewSurveyComponent {
   }
 
   updateItem(updated: InspectionItem): void {
+    if (this.readOnly()) {
+      return;
+    }
     this.items.update((items) => items.map((item) => item.id === updated.id ? { ...updated } : item));
   }
 
   requestRemoveItem(removed: InspectionItem): void {
+    if (this.readOnly()) {
+      return;
+    }
     this.pendingRemoveItem.set(removed);
   }
 
   confirmRemoveItem(): void {
+    if (this.readOnly()) {
+      return;
+    }
     const removed = this.pendingRemoveItem();
     if (!removed) {
       return;
@@ -197,10 +141,17 @@ export class NewSurveyComponent {
   }
 
   duplicateItem(source: InspectionItem): void {
+    if (this.readOnly()) {
+      return;
+    }
     this.items.update((items) => [{ ...source, id: `line-${Date.now()}`, photos: [...source.photos] }, ...items]);
   }
 
   saveDraft(): void {
+    if (this.readOnly()) {
+      this.errors.set(['Il rilievo e gia stato inviato e non puo essere modificato.']);
+      return;
+    }
     const draft = this.buildDraft('DRAFT');
     if (!draft) {
       return;
@@ -209,6 +160,13 @@ export class NewSurveyComponent {
   }
 
   requestSubmit(): void {
+    if (this.readOnly()) {
+      this.errors.set(['Il rilievo e gia stato inviato.']);
+      return;
+    }
+    if (this.saving()) {
+      return;
+    }
     const validationErrors = this.validateForSubmit();
     if (validationErrors.length) {
       this.errors.set(validationErrors);
@@ -218,16 +176,39 @@ export class NewSurveyComponent {
   }
 
   submit(): void {
+    if (this.readOnly()) {
+      this.submitSheetOpen.set(false);
+      this.errors.set(['Il rilievo e gia stato inviato.']);
+      return;
+    }
+    if (this.saving()) {
+      return;
+    }
+    const validationErrors = this.validateForSubmit();
+    if (validationErrors.length) {
+      this.errors.set(validationErrors);
+      this.submitSheetOpen.set(false);
+      return;
+    }
     const draft = this.buildDraft('SUBMITTED');
     if (!draft) {
       return;
     }
     this.submitSheetOpen.set(false);
     this.saving.set(true);
-    this.inspections.submit(draft).subscribe(() => {
-      this.saving.set(false);
-      this.feedback.set('Rilievo inviato al commerciale.');
-      this.router.navigateByUrl('/field/rilievi');
+    this.errors.set([]);
+    this.inspections.submit(draft).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.feedback.set('Rilievo inviato al commerciale.');
+        this.router.navigateByUrl('/tecnico/rilievi', {
+          state: { feedback: 'Rilievo inviato al commerciale.' }
+        });
+      },
+      error: () => {
+        this.saving.set(false);
+        this.errors.set(['Invio rilievo non riuscito. Riprova tra poco.']);
+      }
     });
   }
 
@@ -245,10 +226,17 @@ export class NewSurveyComponent {
 
   private persistDraft(draft: InspectionDraft, message: string): void {
     this.saving.set(true);
-    this.inspections.saveDraft(draft).subscribe(() => {
-      this.saving.set(false);
-      this.feedback.set(message);
-      this.errors.set([]);
+    this.inspections.saveDraft(draft).subscribe({
+      next: (saved) => {
+        this.saving.set(false);
+        this.draftId.set(saved.id);
+        this.feedback.set(message);
+        this.errors.set([]);
+      },
+      error: (error) => {
+        this.saving.set(false);
+        this.errors.set([error.status === 403 ? 'Non puoi modificare questa bozza.' : 'Salvataggio bozza non riuscito.']);
+      }
     });
   }
 
@@ -264,6 +252,7 @@ export class NewSurveyComponent {
       return undefined;
     }
     return {
+      id: this.draftId(),
       customerId: customer?.id ?? 'draft-unassigned',
       customerName: customer?.customerName ?? 'Cliente da selezionare',
       plantCode: customer?.plantCode,
@@ -302,5 +291,28 @@ export class NewSurveyComponent {
   private asNumber(value: number): number {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private populateDraft(draft: InspectionDraft): void {
+    this.draftId.set(draft.id);
+    this.inspectionStatus.set(draft.status);
+    this.createdAt.set(draft.createdAt);
+    this.updatedAt.set(draft.updatedAt);
+    this.submittedAt.set(draft.submittedAt);
+    this.technicianName.set(draft.technicianName);
+    if (draft.customerId) {
+      this.selectedCustomer.set({
+        id: draft.customerId,
+        customerName: draft.customerName,
+        plantCode: draft.plantCode,
+        address: draft.plantAddress
+      });
+    }
+    this.items.set((draft.items ?? []).map((item) => ({
+      ...item,
+      originalTechnicalDescription: item.originalTechnicalDescription ?? item.formalizedDescription ?? item.catalogItemName
+    })));
+    this.feedback.set('');
+    this.errors.set([]);
   }
 }

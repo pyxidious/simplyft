@@ -9,123 +9,14 @@ type ApplyChoice = 'replace' | 'append';
 
 @Component({
   selector: 'app-inspection-item-card',
-  standalone: true,
   imports: [CommonModule, FormsModule],
-  template: `
-    <article class="inspection-item-card compact-item-card">
-      <header>
-        <div>
-          <p class="eyebrow">Voce rilievo</p>
-          <h3>{{ item.catalogItemName }}</h3>
-          <small>{{ item.categoryName || 'Categoria non indicata' }}</small>
-        </div>
-        <div class="item-menu">
-          <button type="button" title="Duplica voce" aria-label="Duplica voce" (click)="duplicate.emit(item)">⧉</button>
-          <button type="button" title="Rimuovi voce" aria-label="Rimuovi voce" class="danger-icon" (click)="remove.emit(item)">⌫</button>
-        </div>
-      </header>
-
-      <div class="item-fields">
-        <label class="field">
-          <span>Ore</span>
-          <input type="number" min="0" step="0.25" [(ngModel)]="item.laborHours" (ngModelChange)="changed()" />
-        </label>
-        <label class="field">
-          <span>Materiale</span>
-          <input type="number" min="0" step="0.01" [(ngModel)]="item.materialCost" (ngModelChange)="changed()" />
-        </label>
-      </div>
-
-      <section class="photo-section">
-        <div class="photo-strip" *ngIf="item.photos.length">
-          <figure *ngFor="let photo of item.photos; let index = index">
-            <img *ngIf="photo.url" [src]="photo.url" [alt]="photo.fileName" />
-            <figcaption>{{ photo.fileName }}</figcaption>
-            <button type="button" (click)="removePhoto(index)">Rimuovi</button>
-          </figure>
-        </div>
-        <label class="attach-button compact-attach">
-          <input type="file" accept="image/*" capture="environment" (change)="addPhoto($event)" />
-          <span>▣</span>
-          <b>{{ item.photos.length ? 'Aggiungi foto' : 'Scatta foto' }}</b>
-        </label>
-      </section>
-
-      <section class="ai-section">
-        <label class="field">
-          <span>Descrizione commerciale</span>
-          <textarea [(ngModel)]="item.formalizedDescription" (ngModelChange)="changed()" placeholder="Sintesi chiara per commerciale o segreteria..."></textarea>
-        </label>
-        <button class="btn secondary wide compact-ai-button" type="button" (click)="formalizeDescription()" [disabled]="busyDescription()">
-          <span>✧</span>
-          {{ busyDescription() ? 'Elaborazione IA...' : aiButtonLabel() }}
-        </button>
-      </section>
-
-      <section class="voice-section voice-recorder" [class.recording]="voiceState() === 'recording'">
-        <div class="voice-recorder-top">
-          <button
-            type="button"
-            class="mic-button"
-            [class.stop]="voiceState() === 'recording'"
-            (click)="toggleRecording()"
-            [disabled]="voiceState() === 'transcribing' || voiceState() === 'formalizing'"
-            [attr.aria-label]="voiceState() === 'recording' ? 'Ferma registrazione' : 'Registra nota vocale'"
-          >
-            {{ voiceState() === 'recording' ? '■' : '●' }}
-          </button>
-          <div>
-            <strong>{{ voiceTitle() }}</strong>
-            <small>{{ voiceSubtitle() }}</small>
-          </div>
-          <span class="voice-timer">{{ formattedDuration() }}</span>
-        </div>
-
-        <div class="voice-player" *ngIf="audioUrl()">
-          <audio [src]="audioUrl()" controls></audio>
-          <button type="button" class="btn ghost danger-text" (click)="resetRecording()">Elimina</button>
-        </div>
-
-        <button class="btn primary wide" type="button" *ngIf="voiceState() === 'recorded'" (click)="processRecording()">
-          Elabora nota vocale
-        </button>
-
-        <p class="voice-error" *ngIf="voiceState() === 'error'">{{ voiceError() }}</p>
-
-        <details class="transcript-box" *ngIf="item.transcribedNote">
-          <summary>Trascrizione Whisper</summary>
-          <textarea [(ngModel)]="item.transcribedNote" (ngModelChange)="changed()"></textarea>
-        </details>
-
-        <div class="formalized-note" *ngIf="formalizedVoiceText()">
-          <span>Nota formalizzata</span>
-          <p>{{ formalizedVoiceText() }}</p>
-          <button class="btn secondary wide" type="button" (click)="openApplySheet()">Applica alla descrizione</button>
-        </div>
-
-        <label class="field">
-          <span>Nota tecnica libera</span>
-          <textarea [(ngModel)]="item.rawNote" (ngModelChange)="changed()" placeholder="Aggiungi dettagli rilevati sul campo..."></textarea>
-        </label>
-      </section>
-
-      <div class="sheet-backdrop" *ngIf="applySheetOpen()" (click)="applySheetOpen.set(false)">
-        <section class="bottom-sheet" (click)="$event.stopPropagation()">
-          <span class="sheet-handle"></span>
-          <h2>Applica nota vocale</h2>
-          <p>La descrizione commerciale contiene gia testo. Come vuoi usare la nota formalizzata?</p>
-          <div class="sheet-actions stacked">
-            <button class="btn primary" type="button" (click)="applyVoiceText('replace')">Sostituisci</button>
-            <button class="btn secondary" type="button" (click)="applyVoiceText('append')">Aggiungi in coda</button>
-            <button class="btn ghost" type="button" (click)="applySheetOpen.set(false)">Annulla</button>
-          </div>
-        </section>
-      </div>
-    </article>
-  `
+  templateUrl: './inspection-item-card.component.html',
+  styleUrl: './inspection-item-card.component.css'
 })
+
 export class InspectionItemCardComponent implements OnDestroy {
   @Input({ required: true }) item!: InspectionItem;
+  @Input() readOnly = false;
   @Output() itemChange = new EventEmitter<InspectionItem>();
   @Output() remove = new EventEmitter<InspectionItem>();
   @Output() duplicate = new EventEmitter<InspectionItem>();
@@ -156,10 +47,16 @@ export class InspectionItemCardComponent implements OnDestroy {
   }
 
   changed(): void {
+    if (this.readOnly) {
+      return;
+    }
     this.itemChange.emit(this.item);
   }
 
   addPhoto(event: Event): void {
+    if (this.readOnly) {
+      return;
+    }
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) {
@@ -179,11 +76,17 @@ export class InspectionItemCardComponent implements OnDestroy {
   }
 
   removePhoto(index: number): void {
+    if (this.readOnly) {
+      return;
+    }
     this.item.photos = this.item.photos.filter((_, current) => current !== index);
     this.changed();
   }
 
   formalizeDescription(): void {
+    if (this.readOnly || this.busyDescription()) {
+      return;
+    }
     this.busyDescription.set(true);
     this.item.pendingOperation = true;
     this.changed();
@@ -215,6 +118,9 @@ export class InspectionItemCardComponent implements OnDestroy {
   }
 
   async startRecording(): Promise<void> {
+    if (this.readOnly) {
+      return;
+    }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       this.voiceError.set('Registrazione audio non supportata da questo browser.');
       this.voiceState.set('error');
@@ -247,7 +153,7 @@ export class InspectionItemCardComponent implements OnDestroy {
   }
 
   processRecording(): void {
-    if (!this.audioBlob) {
+    if (this.readOnly || !this.audioBlob) {
       return;
     }
     this.voiceState.set('transcribing');
@@ -278,6 +184,9 @@ export class InspectionItemCardComponent implements OnDestroy {
   }
 
   resetRecording(): void {
+    if (this.readOnly) {
+      return;
+    }
     const url = this.audioUrl();
     if (url) {
       URL.revokeObjectURL(url);
@@ -291,6 +200,9 @@ export class InspectionItemCardComponent implements OnDestroy {
   }
 
   openApplySheet(): void {
+    if (this.readOnly) {
+      return;
+    }
     if (!this.item.formalizedDescription?.trim()) {
       this.applyVoiceText('replace');
       return;
@@ -299,6 +211,9 @@ export class InspectionItemCardComponent implements OnDestroy {
   }
 
   applyVoiceText(choice: ApplyChoice): void {
+    if (this.readOnly) {
+      return;
+    }
     const text = this.formalizedVoiceText().trim();
     if (!text) {
       return;

@@ -6,6 +6,7 @@ import { ActivityLog } from '../../../core/models/simplyft.models';
   selector: 'app-activity-timeline',
   standalone: true,
   imports: [CommonModule],
+  styleUrl: './activity-timeline.component.css',
   template: `
     <div class="timeline">
       <article *ngFor="let item of items" class="timeline-item" [class]="item.tone">
