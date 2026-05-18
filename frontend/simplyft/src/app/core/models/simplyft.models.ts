@@ -1,6 +1,8 @@
 export type UserRole = 'tecnico' | 'commerciale' | 'amministratore';
 export type PlantStatus = 'complete' | 'incomplete' | 'needs-review';
 export type SurveyStatus = 'draft' | 'sent' | 'review';
+export type PreventivoStatus = 'DRAFT' | 'TO_REVIEW' | 'QUOTING' | 'CONFIRMED' | 'NEEDS_INTEGRATION';
+export type RilievoStatus = 'DRAFT' | 'SUBMITTED' | 'NEEDS_INTEGRATION' | 'IN_PROGRESS' | 'IN_REVIEW' | 'COMMERCIAL_REVIEW';
 export type PipelineStatus =
   | 'new-survey'
   | 'to-review'
@@ -79,7 +81,7 @@ export interface InspectionDraft {
   customerName: string;
   plantCode?: string;
   plantAddress?: string;
-  status: 'DRAFT' | 'SUBMITTED' | 'IN_REVIEW' | 'COMMERCIAL_REVIEW';
+  status: RilievoStatus;
   technicianId: string;
   technicianName: string;
   items: InspectionItem[];
@@ -111,6 +113,10 @@ export interface Plant {
   completeness: number;
   status: PlantStatus;
   lastSurvey: string;
+  assignedTo?: string;
+  assignmentCode?: string;
+  assignmentTitle?: string;
+  assignmentDueDate?: string;
   attachments: Attachment[];
 }
 
@@ -177,4 +183,183 @@ export interface Quote {
   items: QuoteItem[];
   activities: ActivityLog[];
   internalComments: string[];
+}
+
+export interface CommercialQuoteListItem extends Quote {
+  statusLabel: PreventivoStatus;
+  quoteId?: string;
+  inspectionId: string;
+  hasQuote: boolean;
+  inspectionStatus: RilievoStatus;
+  technicianId: string;
+  technicianName: string;
+}
+
+export interface CommercialQuoteRow {
+  id: string;
+  description: string;
+  sku: string;
+  quantity: number;
+  laborHours: number;
+  laborTotal: number;
+  materialUnitPrice: number;
+  materialTotal: number;
+  margin: number;
+  technicalNote: string;
+}
+
+export interface CommercialQuoteDetail extends Quote {
+  statusLabel: PreventivoStatus;
+  sheetNumber: string;
+  customerDetail: {
+    name: string;
+    email: string;
+    phone: string;
+    city: string;
+  };
+  plant: {
+    code: string;
+    serial: string;
+    address: string;
+    type: string;
+  };
+  inspection?: {
+    id: string;
+    customerName: string;
+    plantCode: string;
+    status: RilievoStatus;
+    technicianId: string;
+    technicianName: string;
+    submittedAt?: string;
+    updatedAt?: string;
+  };
+  rows: CommercialQuoteRow[];
+  totals: {
+    labor: number;
+    material: number;
+    margin: number;
+    finalPrice: number;
+  };
+}
+
+export interface QuoteDocument {
+  quoteId: string;
+  number: string;
+  date: string;
+  version: string;
+  language: string;
+  currency: string;
+  template: string;
+  premise: string;
+  paymentMethod: string;
+  closingConditions: string;
+  finalNotes: string;
+  includes: string;
+  excludes: string;
+  offerValidity: string;
+  deliveryTime: string;
+  warranty: string;
+  customClauses: QuoteClause[];
+}
+
+export interface QuoteClause {
+  title: string;
+  text: string;
+}
+
+export interface CommercialTechnician {
+  id: string;
+  name: string;
+  email: string;
+  title: string;
+}
+
+export interface CommercialCustomer {
+  id: string;
+  name: string;
+  city: string;
+  email: string;
+}
+
+export interface CommercialPlantOption {
+  id: string;
+  customerId: string;
+  customerName: string;
+  code: string;
+  address: string;
+  type: string;
+}
+
+export interface CommercialAssignment {
+  id: string;
+  code: string;
+  technicianId: string;
+  technicianName: string;
+  plantId: string;
+  customerName: string;
+  plantCode: string;
+  address: string;
+  title: string;
+  description: string;
+  priority: string;
+  status: string;
+  dueDate?: string;
+  createdAt?: string;
+}
+
+export interface CreateIntegrationRequest {
+  reason: string;
+  notes: string;
+  fields: string;
+}
+
+export interface IntegrationRequest {
+  id: string;
+  quoteId: string;
+  quoteTitle: string;
+  inspectionId: string;
+  technicianId?: string;
+  customerName: string;
+  plantCode: string;
+  reason: string;
+  notes: string;
+  fields: string;
+  status: 'OPEN' | 'RESOLVED' | string;
+  createdAt: string;
+}
+
+export interface CommercialDashboardKpi {
+  label: string;
+  value: string;
+  trend: string;
+  trendTone: 'up' | 'warn' | 'flat';
+}
+
+export interface CommercialDashboardInspection {
+  id: string;
+  customerName: string;
+  plantCode: string;
+  technicianName: string;
+  status: string;
+  updatedAt: string;
+}
+
+export interface CommercialDashboardCustomer {
+  id: string;
+  name: string;
+  city: string;
+  email: string;
+}
+
+export interface CommercialDashboardTrendPoint {
+  label: string;
+  value: number;
+}
+
+export interface CommercialDashboard {
+  kpis: CommercialDashboardKpi[];
+  recentInspections: CommercialDashboardInspection[];
+  recentQuotes: Quote[];
+  recentCustomers: CommercialDashboardCustomer[];
+  opportunityTrend: CommercialDashboardTrendPoint[];
 }

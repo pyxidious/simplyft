@@ -11,6 +11,7 @@
         <p class="eyebrow">Dati impianto</p>
         <h2>{{ item.customer }}</h2>
         <span>{{ item.code }} - {{ item.brand }} {{ item.model }}</span>
+        <small>{{ item.assignmentCode || 'Assegnazione' }} - {{ item.assignmentTitle || 'Attivita assegnata' }}</small>
       </div>
       <app-status-badge [label]="item.completeness + '% completo'" [tone]="item.completeness > 80 ? 'success' : 'warning'" />
     </section>
@@ -28,8 +29,27 @@
       <app-form-field label="Annotazione libera"><textarea placeholder="Scrivi senza schema: SimpLyft la normalizzera nel riepilogo"></textarea></app-form-field>
     </form>
 
-    <app-voice-note-mock />
-    <app-upload-mock [attachments]="item.attachments" />
+    <section class="capture-actions" aria-label="Acquisizione rilievo">
+      <button
+        type="button"
+        class="capture-button voice"
+        [class.recording]="recording()"
+        [disabled]="uploading()"
+        (click)="recording.set(!recording())"
+      >
+        <span>{{ recording() ? '■' : '●' }}</span>
+        <b>{{ recording() ? 'Registrazione in corso' : 'Registra nota vocale' }}</b>
+      </button>
+      <button
+        type="button"
+        class="capture-button photo"
+        [disabled]="recording() || uploading()"
+      >
+        <span>＋</span>
+        <b>{{ uploading() ? 'Caricamento foto...' : 'Aggiungi foto' }}</b>
+      </button>
+    </section>
+
     <a class="btn primary wide" routerLink="/tecnico/rilievi/nuovo">Avvia rilievo guidato</a>
   </main>
 </section>

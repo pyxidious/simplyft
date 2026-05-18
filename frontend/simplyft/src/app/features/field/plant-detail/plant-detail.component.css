@@ -105,6 +105,13 @@
   line-height: 1.4;
 }
 
+.detail-hero small {
+  display: block;
+  margin-top: 6px;
+  color: #334155;
+  font-weight: 800;
+}
+
 .form-grid {
   margin-bottom: 16px;
   padding: 18px;
@@ -155,10 +162,90 @@
   box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
 }
 
-app-voice-note-mock,
-app-upload-mock {
-  display: block;
+.capture-actions {
   margin-bottom: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.capture-button {
+  min-height: 68px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border-radius: 22px;
+  border: 1px solid #dbeafe;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  text-align: left;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.07);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.capture-button span {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.capture-button b {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.capture-button:hover,
+.capture-button:focus-visible {
+  border-color: #93c5fd;
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.14);
+  outline: none;
+}
+
+.capture-button:active {
+  transform: scale(0.985);
+}
+
+.capture-button:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.capture-button.recording {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.capture-button.recording span {
+  background: #fee2e2;
+  color: #dc2626;
+  animation: recordPulse 1.2s ease-in-out infinite;
+}
+
+.capture-button.photo span {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+@keyframes recordPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.25);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(220, 38, 38, 0);
+  }
 }
 
 @media (min-width: 640px) {
@@ -169,6 +256,10 @@ app-upload-mock {
   }
 
   .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .capture-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

@@ -3,7 +3,7 @@ import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { PlantStatus } from '../../../core/models/simplyft.models';
-import { PlantMockService } from '../../../core/services/plant-mock.service';
+import { TechnicianPlantsService } from '../../../core/services/technician-plants.service';
 import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
 
 @Component({
@@ -16,7 +16,7 @@ import { StatusBadgeComponent } from '../../../shared/components/status-badge/st
 export class PlantsListComponent {
   query = signal('');
   status = signal<PlantStatus | 'all'>('all');
-  constructor(public plants: PlantMockService) {}
+  constructor(public plants: TechnicianPlantsService) {}
   label(status: PlantStatus): string { return status === 'complete' ? 'Completo' : status === 'incomplete' ? 'Incompleto' : 'Richiede verifica'; }
   tone(status: PlantStatus): 'success' | 'warning' | 'danger' { return status === 'complete' ? 'success' : status === 'incomplete' ? 'warning' : 'danger'; }
 }

@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -62,8 +63,21 @@ public class RilieviController {
         Long rilievoId = parseInspectionId(id);
         AuthUser tecnico = requireTechnician(user);
         requireMatchingPayloadId(rilievoId, payload);
-        requireDraftOwnerForSubmit(rilievoId, tecnico);
+        requireOwnerForSubmit(rilievoId, tecnico);
         return saveSubmittedPayload(rilievoId, payload, tecnico);
+    }
+
+    @PatchMapping("/{id}")
+    public Map<String, Object> updateIntegration(
+        @PathVariable String id,
+        @RequestBody Map<String, Object> payload,
+        @AuthenticationPrincipal AuthUser user
+    ) {
+        Long rilievoId = parseInspectionId(id);
+        AuthUser tecnico = requireTechnician(user);
+        requireMatchingPayloadId(rilievoId, payload);
+        requireOwnerForUpdate(rilievoId, tecnico);
+        return saveInProgressPayload(rilievoId, payload, tecnico);
     }
 
     @SuppressWarnings("unchecked")
@@ -112,6 +126,55 @@ public class RilieviController {
                 string(item.get("formalizedDescription"), null)
             );
         }
+        jdbc.update("""
+            UPDATE richieste_integrazione
+            SET stato = 'RESOLVED', aggiornata_il = NOW()
+            WHERE rilievo_id = ? AND stato = 'OPEN'
+            """, id);
+        jdbc.update("""
+            UPDATE preventivi_header
+            SET stato = 'TO_REVIEW', aggiornato_il = NOW()
+            WHERE rilievo_id = ? AND stato = 'NEEDS_INTEGRATION'
+            """, id);
+        return inspectionDto(id);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> saveInProgressPayload(Long id, Map<String, Object> payload, AuthUser tecnico) {
+        String customerId = string(payload.get("customerId"), "");
+        Long plantId = customerId.startsWith("p-") ? parsePrefixedId(customerId, "p-") : null;
+        Long customerDbId = plantId == null ? null : jdbc.queryForObject("SELECT cliente_id FROM impianti WHERE id = ?", Long.class, plantId);
+        List<Map<String, Object>> items = (List<Map<String, Object>>) payload.getOrDefault("items", List.of());
+        BigDecimal totalHours = decimal(payload.get("totalLaborHours"));
+        BigDecimal totalMaterial = decimal(payload.get("totalMaterialCost"));
+
+        jdbc.update("""
+            UPDATE rilievi
+            SET cliente_id = ?, impianto_id = ?, stato = 'IN_PROGRESS', tecnico_nome = ?,
+                totale_ore_manodopera = ?, totale_costo_materiale = ?, aggiornato_il = NOW()
+            WHERE id = ? AND tecnico_id = ?
+            """, customerDbId, plantId, tecnico.name(), totalHours, totalMaterial, id, tecnico.id());
+        jdbc.update("DELETE FROM rilievi_righe WHERE rilievo_id = ?", id);
+        for (Map<String, Object> item : items) {
+            jdbc.update("""
+                INSERT INTO rilievi_righe (
+                    rilievo_id, articolo_id, nome_articolo, categoria_nome, ore_manodopera,
+                    costo_materiale, nota_grezza, trascrizione, descrizione_tecnica_originale,
+                    descrizione_formalizzata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                id,
+                parseOptionalCatalogId(item.get("catalogItemId")),
+                string(item.get("catalogItemName"), "Voce rilievo"),
+                string(item.get("categoryName"), null),
+                decimal(item.get("laborHours")),
+                decimal(item.get("materialCost")),
+                string(item.get("rawNote"), null),
+                string(item.get("transcribedNote"), null),
+                string(item.get("originalTechnicalDescription"), null),
+                string(item.get("formalizedDescription"), null)
+            );
+        }
         return inspectionDto(id);
     }
 
@@ -129,7 +192,7 @@ public class RilieviController {
         }
     }
 
-    private void requireDraftOwnerForSubmit(Long id, AuthUser tecnico) {
+    private void requireOwnerForSubmit(Long id, AuthUser tecnico) {
         Map<String, Object> owner = jdbc.query("""
             SELECT tecnico_id, stato
             FROM rilievi
@@ -144,8 +207,30 @@ public class RilieviController {
         if (!tecnico.id().equals(owner.get("technicianId"))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Rilievo assegnato a un altro tecnico");
         }
-        if (!"DRAFT".equals(owner.get("status"))) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Rilievo gia inviato");
+        String status = String.valueOf(owner.get("status"));
+        if (!List.of("DRAFT", "NEEDS_INTEGRATION", "IN_PROGRESS").contains(status)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Rilievo non modificabile");
+        }
+    }
+
+    private void requireOwnerForUpdate(Long id, AuthUser tecnico) {
+        Map<String, Object> owner = jdbc.query("""
+            SELECT tecnico_id, stato
+            FROM rilievi
+            WHERE id = ?
+            """, (rs, rowNum) -> dto(
+                "technicianId", rs.getLong("tecnico_id"),
+                "status", rs.getString("stato")
+            ), id).stream().findFirst().orElse(null);
+        if (owner == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rilievo non trovato");
+        }
+        if (!tecnico.id().equals(owner.get("technicianId"))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Rilievo assegnato a un altro tecnico");
+        }
+        String status = String.valueOf(owner.get("status"));
+        if (!List.of("NEEDS_INTEGRATION", "IN_PROGRESS").contains(status)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Rilievo non modificabile");
         }
     }
 

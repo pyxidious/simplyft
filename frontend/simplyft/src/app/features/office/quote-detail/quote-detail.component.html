@@ -1,4 +1,9 @@
-<section class="commercial-page" *ngIf="quote as item">
+<section class="commercial-page">
+  <div class="state-message" *ngIf="loading()">Caricamento preventivo...</div>
+  <div class="state-message success" *ngIf="feedback()">{{ feedback() }}</div>
+  <div class="state-message error" *ngIf="error()">{{ error() }}</div>
+
+  <ng-container *ngIf="quote() as item">
   <header class="detail-header">
     <div>
       <a class="back-link" routerLink="/commerciale/preventivi">Preventivi</a>
@@ -7,56 +12,191 @@
       <span>{{ item.customer }} - impianto {{ item.plantCode }}</span>
     </div>
     <div class="button-row">
-      <button class="btn primary" type="button">Approva</button>
-      <button class="btn secondary" type="button">Richiedi integrazione</button>
-      <button class="btn ghost" type="button">Genera PDF</button>
-      <button class="btn ghost" type="button">Invia al cliente</button>
+      <button class="btn primary" type="button" (click)="confirmOpen.set(true)" [disabled]="quotes.actionLoading() === 'confirm' || !editable()">Approva preventivo</button>
+      <button class="btn secondary" type="button" (click)="integrationOpen.set(true)" [disabled]="quotes.actionLoading() === 'integration' || !editable()">Richiedi integrazione</button>
+      <button class="btn ghost" type="button" (click)="generatePdf()" [disabled]="quotes.actionLoading() === 'pdf'">Genera PDF</button>
     </div>
   </header>
 
+  <nav class="quote-tabs" aria-label="Rifinitura preventivo">
+    <button type="button" [class.active]="activeTab() === 'survey'" (click)="activeTab.set('survey')">Rifinitura rilievo</button>
+    <button type="button" [class.active]="activeTab() === 'registry'" (click)="activeTab.set('registry')">Clienti e impianti</button>
+    <button type="button" [class.active]="activeTab() === 'document'" (click)="activeTab.set('document')">Documento offerta</button>
+  </nav>
+
   <div class="quote-detail-grid">
-    <section class="panel wide-card">
+    <section class="panel wide-card" *ngIf="activeTab() === 'survey'">
       <h2>Rilievo normalizzato dal tecnico</h2>
       <div class="info-grid">
         <p><span>Cliente</span><b>{{ item.customer }}</b></p>
         <p><span>Codice impianto</span><b>{{ item.plantCode }}</b></p>
         <p><span>Validazione tecnica</span><b>{{ item.technicalValidation }}</b></p>
         <p><span>Priorita</span><b>{{ item.priority }}</b></p>
+        <p><span>Stato preventivo</span><b>{{ item.statusLabel }}</b></p>
       </div>
-      <div class="attachment-grid">
-        <article class="attachment-tile"><div class="photo-thumb"></div><span>Quadro elettrico.jpg</span><small>Validata</small></article>
-        <article class="attachment-tile"><div class="photo-thumb"></div><span>Vano corsa.jpg</span><small>Validata</small></article>
-        <article class="attachment-tile"><div class="photo-thumb"></div><span>Targhetta motore.jpg</span><small>Mancante</small></article>
+      <div class="inspection-box" *ngIf="item.inspection; else noInspection">
+        <b>Rilievo {{ item.inspection.id }}</b>
+        <span>{{ item.inspection.status }} - {{ item.inspection.technicianName }}</span>
+      </div>
+      <ng-template #noInspection><p class="empty-state">Nessun dato disponibile</p></ng-template>
+    </section>
+
+    <app-quote-summary *ngIf="activeTab() !== 'registry'" [cost]="totals.cost" [margin]="totals.marginAmount" [finalPrice]="totals.finalPrice" />
+
+    <section class="panel wide-card" *ngIf="activeTab() === 'registry' && customerDraft">
+      <h2>Anagrafica cliente</h2>
+      <div class="edit-grid">
+        <label>Ragione sociale <input [(ngModel)]="customerDraft.name" [disabled]="!editable()" /></label>
+        <label>Email <input [(ngModel)]="customerDraft.email" [disabled]="!editable()" /></label>
+        <label>Telefono <input [(ngModel)]="customerDraft.phone" [disabled]="!editable()" /></label>
+        <label>Citta <input [(ngModel)]="customerDraft.city" [disabled]="!editable()" /></label>
+      </div>
+      <button class="btn secondary" type="button" (click)="saveCustomer()" [disabled]="!editable() || quotes.actionLoading() === 'customer'">Salva cliente</button>
+    </section>
+
+    <section class="panel wide-card" *ngIf="activeTab() === 'registry' && plantDraft">
+      <h2>Dati impianto</h2>
+      <div class="edit-grid">
+        <label>Codice <input [(ngModel)]="plantDraft.code" disabled /></label>
+        <label>Matricola <input [(ngModel)]="plantDraft.serial" [disabled]="!editable()" /></label>
+        <label>Indirizzo <input [(ngModel)]="plantDraft.address" [disabled]="!editable()" /></label>
+        <label>Tipologia <input [(ngModel)]="plantDraft.type" [disabled]="!editable()" /></label>
+      </div>
+      <button class="btn secondary" type="button" (click)="savePlant()" [disabled]="!editable() || quotes.actionLoading() === 'plant'">Salva impianto</button>
+    </section>
+
+    <section class="panel wide-card" *ngIf="activeTab() === 'registry'">
+      <h2>Gestione clienti e impianti</h2>
+      <div class="management-grid">
+        <div>
+          <h3>Nuovo cliente</h3>
+          <label>Nome <input [(ngModel)]="newCustomer.name" [disabled]="!editable()" /></label>
+          <label>Citta <input [(ngModel)]="newCustomer.city" [disabled]="!editable()" /></label>
+          <label>Email <input [(ngModel)]="newCustomer.email" [disabled]="!editable()" /></label>
+          <button class="btn secondary" type="button" (click)="createCustomer()" [disabled]="!editable()">Aggiungi cliente</button>
+        </div>
+        <div>
+          <h3>Nuovo impianto</h3>
+          <label>Cliente
+            <select [(ngModel)]="newPlant.customerId" [disabled]="!editable()">
+              <option value="">Seleziona cliente</option>
+              <option *ngFor="let customer of registry.customers()" [value]="customer.id">{{ customer.name }}</option>
+            </select>
+          </label>
+          <label>Indirizzo <input [(ngModel)]="newPlant.address" [disabled]="!editable()" /></label>
+          <label>Tipologia <input [(ngModel)]="newPlant.type" [disabled]="!editable()" /></label>
+          <button class="btn secondary" type="button" (click)="createPlant()" [disabled]="!editable()">Aggiungi impianto</button>
+        </div>
+      </div>
+      <div class="registry-list">
+        <article *ngFor="let customer of registry.customers()">
+          <input [(ngModel)]="customer.name" [disabled]="!editable()" />
+          <input [(ngModel)]="customer.city" [disabled]="!editable()" />
+          <button class="btn ghost" type="button" (click)="updateRegistryCustomer(customer)" [disabled]="!editable()">Salva</button>
+          <button class="btn ghost danger-text" type="button" (click)="registry.deleteCustomer(customer.id)" [disabled]="!editable()">Rimuovi</button>
+        </article>
+        <article *ngFor="let plant of registry.plants()">
+          <input [value]="plant.customerName + ' - ' + plant.code" disabled />
+          <input [(ngModel)]="plant.address" [disabled]="!editable()" />
+          <button class="btn ghost" type="button" (click)="updateRegistryPlant(plant)" [disabled]="!editable()">Salva</button>
+          <button class="btn ghost danger-text" type="button" (click)="registry.deletePlant(plant.id)" [disabled]="!editable()">Rimuovi</button>
+        </article>
       </div>
     </section>
 
-    <app-quote-summary [cost]="totals.cost" [margin]="totals.marginAmount" [finalPrice]="totals.finalPrice" />
-
-    <section class="panel wide-card">
+    <section class="panel wide-card" *ngIf="activeTab() === 'survey'">
       <h2>Componenti suggeriti</h2>
       <div class="component-row" *ngFor="let component of item.components">
         <div><b>{{ component.name }}</b><p>{{ component.sku }} - {{ component.supplier }}</p></div>
         <app-status-badge [label]="component.confidence + '% compatibile'" tone="success" />
       </div>
+      <p class="empty-state" *ngIf="!item.components.length">Nessun dato disponibile</p>
     </section>
 
-    <section class="panel">
-      <h2>Costi e margini</h2>
-      <div class="cost-row" *ngFor="let line of item.items">
-        <span>{{ line.description }}</span>
-        <b>{{ line.quantity * line.unitCost | currency:'EUR' }}</b>
-        <small>{{ line.margin }}% margine</small>
+    <section class="panel wide-card document-panel" *ngIf="activeTab() === 'document' && document() as doc">
+      <div class="section-line">
+        <h2>Configurazione documento offerta</h2>
+        <span class="ready-chip">Pronto per esportazione</span>
       </div>
+      <label class="full-label">Template documento
+        <select [ngModel]="doc.template" (ngModelChange)="applyTemplate($event)" [disabled]="!editable()">
+          <option *ngFor="let template of documentTemplates">{{ template }}</option>
+        </select>
+      </label>
+      <div class="edit-grid">
+        <label>Numero <input [(ngModel)]="doc.number" disabled /></label>
+        <label>Data <input [(ngModel)]="doc.date" disabled /></label>
+        <label>Versione <input [(ngModel)]="doc.version" [disabled]="!editable()" /></label>
+        <label>Valuta <input [(ngModel)]="doc.currency" [disabled]="!editable()" /></label>
+      </div>
+      <label class="full-label">Premessa <textarea [(ngModel)]="doc.premise" [disabled]="!editable()"></textarea></label>
+      <label class="full-label">Offerta include <textarea [(ngModel)]="doc.includes" [disabled]="!editable()"></textarea></label>
+      <label class="full-label">Offerta esclude <textarea [(ngModel)]="doc.excludes" [disabled]="!editable()"></textarea></label>
+      <label class="full-label">Validita offerta <textarea [(ngModel)]="doc.offerValidity" [disabled]="!editable()"></textarea></label>
+      <label class="full-label">Tempi consegna <textarea [(ngModel)]="doc.deliveryTime" [disabled]="!editable()"></textarea></label>
+      <label class="full-label">Garanzia intervento <textarea [(ngModel)]="doc.warranty" [disabled]="!editable()"></textarea></label>
+      <label class="full-label">Metodo pagamento <textarea [(ngModel)]="doc.paymentMethod" [disabled]="!editable()"></textarea></label>
+      <label class="full-label">Condizioni chiusura <textarea [(ngModel)]="doc.closingConditions" [disabled]="!editable()"></textarea></label>
+      <label class="full-label">Note finali <textarea [(ngModel)]="doc.finalNotes" [disabled]="!editable()"></textarea></label>
+      <section class="clause-list">
+        <div class="section-line">
+          <h2>Clausole aggiuntive</h2>
+          <button class="btn ghost" type="button" (click)="addClause()" [disabled]="!editable()">Aggiungi clausola</button>
+        </div>
+        <article class="clause-card" *ngFor="let clause of doc.customClauses; let i = index">
+          <input [(ngModel)]="clause.title" [disabled]="!editable()" />
+          <textarea [(ngModel)]="clause.text" [disabled]="!editable()"></textarea>
+          <button class="btn ghost danger-text" type="button" (click)="removeClause(i)" [disabled]="!editable()">Rimuovi</button>
+        </article>
+      </section>
+      <button class="btn secondary" type="button" (click)="saveDocument()" [disabled]="!editable() || quotes.actionLoading() === 'document'">Salva documento</button>
     </section>
 
-    <section class="panel">
+    <section class="panel" *ngIf="activeTab() === 'survey'">
+      <h2>Costi e margini</h2>
+      <div class="cost-row" *ngFor="let line of item.rows">
+        <span>{{ line.description }}</span>
+        <b>{{ line.materialTotal + line.laborTotal | currency:'EUR' }}</b>
+        <small>{{ line.quantity }} pz - {{ line.laborHours }}h manodopera</small>
+      </div>
+      <p class="empty-state" *ngIf="!item.rows.length">Nessun dato disponibile</p>
+    </section>
+
+    <section class="panel" *ngIf="activeTab() === 'survey'">
       <h2>Commenti interni</h2>
       <p class="note-row" *ngFor="let comment of item.internalComments">{{ comment }}</p>
+      <p class="empty-state" *ngIf="!item.internalComments.length">Nessun dato disponibile</p>
     </section>
 
-    <section class="panel wide-card">
+    <section class="panel wide-card" *ngIf="activeTab() === 'survey'">
       <h2>Storico attivita</h2>
       <app-activity-timeline [items]="item.activities" />
+      <p class="empty-state" *ngIf="!item.activities.length">Nessun dato disponibile</p>
+    </section>
+  </div>
+  </ng-container>
+
+  <div class="sheet-backdrop" *ngIf="integrationOpen()" (click)="integrationOpen.set(false)">
+    <section class="modal-panel" (click)="$event.stopPropagation()">
+      <h2>Richiedi integrazione</h2>
+      <label>Motivo richiesta <input [(ngModel)]="integrationReason" /></label>
+      <label>Note dettagliate <textarea [(ngModel)]="integrationNotes"></textarea></label>
+      <label>Campi o componenti da correggere <textarea [(ngModel)]="integrationFields"></textarea></label>
+      <div class="button-row">
+        <button class="btn ghost" type="button" (click)="integrationOpen.set(false)">Annulla</button>
+        <button class="btn primary" type="button" (click)="submitIntegration()" [disabled]="quotes.actionLoading() === 'integration'">Invia richiesta</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="sheet-backdrop" *ngIf="confirmOpen()" (click)="confirmOpen.set(false)">
+    <section class="modal-panel" (click)="$event.stopPropagation()">
+      <h2>Approva preventivo</h2>
+      <p>Confermi l'approvazione del preventivo?</p>
+      <div class="button-row">
+        <button class="btn ghost" type="button" (click)="confirmOpen.set(false)">Annulla</button>
+        <button class="btn primary" type="button" (click)="confirmQuote()" [disabled]="quotes.actionLoading() === 'confirm'">Conferma</button>
+      </div>
     </section>
   </div>
 </section>

@@ -30,8 +30,8 @@
     <article class="inspection-list-card" *ngFor="let inspection of visibleInspections()">
       <header>
         <div>
-          <span class="status-badge" [class.warning]="inspection.status === 'DRAFT'" [class.success]="inspection.status === 'SUBMITTED'">
-            {{ inspection.status === 'DRAFT' ? 'Bozza' : 'Inviato' }}
+          <span class="status-badge" [class.warning]="inspection.status === 'DRAFT' || inspection.status === 'NEEDS_INTEGRATION'" [class.success]="inspection.status === 'SUBMITTED'">
+            {{ inspection.status === 'DRAFT' ? 'Bozza' : (inspection.status === 'NEEDS_INTEGRATION' ? 'Integrazione richiesta' : (inspection.status === 'IN_PROGRESS' ? 'In lavorazione' : 'Inviato')) }}
           </span>
           <h3>{{ inspection.customerName }}</h3>
           <p>{{ inspection.plantCode || 'Codice impianto non disponibile' }}</p>

@@ -40,6 +40,18 @@ Stop it with:
 ./scripts/stop-environment.sh
 ```
 
+Start the environment and expose the site with ngrok:
+
+```bash
+./scripts/start-ngrok.sh
+```
+
+Stop the ngrok tunnel:
+
+```bash
+./scripts/stop-ngrok.sh
+```
+
 Reload only the frontend with:
 
 ```bash
@@ -58,7 +70,7 @@ Manage the Angular frontend container with content-change aware rebuilds:
 If needed, make it executable first:
 
 ```bash
-chmod +x frontend-angular.sh reload-frontend.sh scripts/start-environment.sh scripts/stop-environment.sh scripts/reload-frontend.sh
+chmod +x frontend-angular.sh reload-frontend.sh scripts/start-environment.sh scripts/stop-environment.sh scripts/start-ngrok.sh scripts/stop-ngrok.sh scripts/reload-frontend.sh
 ```
 
 ## Options
@@ -69,6 +81,8 @@ chmod +x frontend-angular.sh reload-frontend.sh scripts/start-environment.sh scr
 - Linux/macOS: `--no-build` skips image rebuilds.
 - Linux/macOS: `--follow-logs` follows Docker Compose logs after startup.
 - Linux/macOS: `--volumes` removes Docker Compose volumes while stopping, deleting local database/model data.
+- ngrok start: `--port PORT` exposes a different local port; `--no-start` skips starting Docker Compose; `--no-build` starts Docker Compose without rebuilding images.
+- ngrok stop: `--environment` also stops Docker Compose; `--volumes` also removes Docker Compose volumes.
 - Frontend reload: `--follow-logs` follows only frontend logs after recreation.
 - Angular frontend manager: `--force` rebuilds even without content changes; `--follow-logs` follows frontend logs; `--interval SECONDS` changes watch polling.
 

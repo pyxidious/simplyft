@@ -1,0 +1,42 @@
+<section class="survey-workspace">
+  <header class="survey-topbar">
+    <a routerLink="/tecnico/home" aria-label="Torna alla home">‹</a>
+    <h1>Integrazioni</h1>
+  </header>
+
+  <main class="survey-content integrations-page">
+    <section class="list-hero">
+      <div>
+        <p class="eyebrow">Back-office</p>
+        <h2>Richieste integrazione</h2>
+        <span>Mostra solo richieste assegnate al tecnico loggato.</span>
+      </div>
+    </section>
+
+    <div class="empty-state large-empty" *ngIf="integrations.loading()">Caricamento richieste...</div>
+    <div class="feedback error-feedback" *ngIf="integrations.error()">{{ integrations.error() }}</div>
+
+    <article class="integration-card" *ngFor="let request of integrations.requests()">
+      <header>
+        <div>
+          <span class="status-badge" [class.success]="request.status === 'RESOLVED'">{{ request.status }}</span>
+          <h3>{{ request.reason }}</h3>
+          <p>{{ request.customerName }} - impianto {{ request.plantCode }}</p>
+        </div>
+        <a class="btn primary" [routerLink]="['/tecnico/rilievi', request.inspectionId]">Apri rilievo</a>
+      </header>
+      <dl>
+        <div><dt>Rilievo</dt><dd>{{ request.inspectionId }}</dd></div>
+        <div><dt>Preventivo</dt><dd>{{ request.quoteTitle }}</dd></div>
+        <div><dt>Data richiesta</dt><dd>{{ request.createdAt | date:'dd/MM/yyyy HH:mm' }}</dd></div>
+        <div><dt>Stato</dt><dd>{{ request.status }}</dd></div>
+      </dl>
+      <p class="note" *ngIf="request.notes">{{ request.notes }}</p>
+      <p class="note" *ngIf="request.fields"><b>Campi/componenti:</b> {{ request.fields }}</p>
+    </article>
+
+    <div class="empty-state large-empty" *ngIf="!integrations.loading() && !integrations.requests().length">
+      Nessun dato disponibile
+    </div>
+  </main>
+</section>

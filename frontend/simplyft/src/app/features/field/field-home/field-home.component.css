@@ -153,6 +153,26 @@
   font-weight: 700;
 }
 
+.integration-banner {
+  margin: 18px 0;
+  padding: 14px 16px;
+  display: grid;
+  gap: 4px;
+  border-radius: 18px;
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.integration-banner span {
+  color: #a16207;
+  font-weight: 700;
+}
+
 /* PRIMARY CARD */
 
 .primary-survey-card {

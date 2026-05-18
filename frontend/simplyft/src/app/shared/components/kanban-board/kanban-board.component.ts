@@ -13,7 +13,7 @@ import { StatusBadgeComponent } from '../status-badge/status-badge.component';
     <div class="kanban">
       <section class="kanban-column" *ngFor="let column of columns">
         <header><h3>{{ column.title }}</h3><span>{{ column.quotes.length }}</span></header>
-        <a class="kanban-card" *ngFor="let quote of column.quotes" [routerLink]="['/commerciale/preventivo', quote.id]">
+        <a class="kanban-card" *ngFor="let quote of column.quotes" [routerLink]="quote.id.startsWith('q-') ? ['/commerciale/preventivo', quote.id] : ['/commerciale/preventivi']">
           <div class="kanban-card-top">
             <b>{{ quote.customer }}</b>
             <app-status-badge [label]="quote.priority" [tone]="quote.priority === 'Alta' ? 'danger' : quote.priority === 'Media' ? 'warning' : 'info'" />

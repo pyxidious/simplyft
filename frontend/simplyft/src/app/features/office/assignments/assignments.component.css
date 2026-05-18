@@ -1,0 +1,164 @@
+.commercial-page {
+  padding: 28px 32px 40px;
+}
+
+.section-head,
+.panel {
+  margin-bottom: 18px;
+  padding: 20px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.section-head p {
+  margin: 0 0 5px;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+h2 {
+  margin: 0 0 14px;
+  color: #0f172a;
+}
+
+.panel-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.panel-title h2,
+.panel-title p {
+  margin: 0;
+}
+
+.panel-title p {
+  margin-top: 5px;
+  color: #64748b;
+  font-weight: 800;
+}
+
+.assignment-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.registry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.registry-form {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.registry-form h3 {
+  margin: 0;
+  color: #0f172a;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  color: #334155;
+  font-weight: 900;
+}
+
+input,
+select,
+textarea {
+  min-height: 42px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font: inherit;
+}
+
+textarea {
+  min-height: 86px;
+  resize: vertical;
+}
+
+.btn {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 900;
+}
+
+.btn.primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.btn.secondary {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.assignment-row {
+  padding: 13px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.assignment-row:last-child {
+  border-bottom: 0;
+}
+
+.assignment-row p,
+.assignment-row small,
+.empty-state {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.state-message {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  font-weight: 800;
+}
+
+.state-message.error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+@media (max-width: 760px) {
+  .commercial-page {
+    padding: 18px 16px 28px;
+  }
+
+  .assignment-form,
+  .registry-grid,
+  .section-head {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

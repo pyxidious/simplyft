@@ -46,6 +46,7 @@
           <span>✧</span>
           {{ busyDescription() ? 'Elaborazione IA...' : aiButtonLabel() }}
         </button>
+        <p class="ai-error" *ngIf="descriptionError()">{{ descriptionError() }}</p>
       </section>
 
       <section class="voice-section voice-recorder" [class.recording]="voiceState() === 'recording'" *ngIf="!readOnly || item.transcribedNote || item.rawNote">

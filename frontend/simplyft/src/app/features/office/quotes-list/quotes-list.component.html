@@ -7,15 +7,35 @@
     <a class="btn primary" routerLink="/commerciale/pipeline">Pipeline</a>
   </div>
 
+  <div class="state-message" *ngIf="quotes.loading()">Caricamento preventivi...</div>
+  <div class="state-message error" *ngIf="quotes.error()">{{ quotes.error() }}</div>
+
   <div class="quote-list">
-    <a class="quote-row" *ngFor="let quote of quotes.quotes()" [routerLink]="['/commerciale/preventivo', quote.id]">
+    <article class="quote-row" *ngFor="let quote of quotes.quotes()">
       <div class="quote-main">
         <b>{{ quote.title }}</b>
         <p>{{ quote.customer }} - {{ quote.plantCode }}</p>
+        <small>Rilievo {{ quote.inspectionId }} - {{ quote.inspectionStatus }} - {{ quote.technicianName }}</small>
       </div>
       <app-status-badge [label]="quote.technicalValidation" [tone]="quote.technicalValidation === 'Validato' ? 'success' : 'warning'" />
-      <strong>{{ quote.estimatedValue | currency:'EUR':'symbol':'1.0-0' }}</strong>
-      <span>{{ quote.assignee }}</span>
-    </a>
+      <strong>{{ quote.hasQuote ? (quote.estimatedValue | currency:'EUR':'symbol':'1.0-0') : 'Da preventivare' }}</strong>
+      <label class="technician-select">
+        <span>Tecnico</span>
+        <select
+          [ngModel]="quote.technicianId"
+          (ngModelChange)="updateTechnician(quote, $event)"
+          [disabled]="quotes.actionLoading() === 'technician:' + quote.inspectionId"
+        >
+          <option *ngFor="let technician of quotes.technicians()" [value]="technician.id">{{ technician.name }}</option>
+        </select>
+      </label>
+      <button class="open-btn" type="button" (click)="open(quote)" [disabled]="quotes.actionLoading() === quote.inspectionId">
+        {{ quote.hasQuote ? 'Apri' : 'Crea' }}
+      </button>
+    </article>
+  </div>
+
+  <div class="empty-state" *ngIf="!quotes.loading() && !quotes.quotes().length">
+    Nessun dato disponibile
   </div>
 </section>

@@ -9,10 +9,12 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -30,55 +32,58 @@ public class AiController {
     }
 
     @PostMapping(path = "/api/ai/analyze", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<Map> analyze(@RequestBody Map<String, Object> payload) {
-        return webClient.post()
-            .uri("/analyze")
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(payload)
-            .retrieve()
-            .bodyToMono(Map.class);
+    public Map<?, ?> analyze(@RequestBody Map<String, Object> payload) {
+        try {
+            return webClient.post()
+                .uri("/analyze")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Servizio IA non disponibile", ex);
+        }
     }
 
     @PostMapping(path = "/api/ai/formalize-description", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<Map<String, Object>> formalizeDescription(@RequestBody Map<String, Object> payload) {
+    public Map<String, Object> formalizeDescription(@RequestBody Map<String, Object> payload) {
         String mode = string(payload.get("mode"), "GENERATE");
         String objectName = string(payload.get("objectName"), "componente rilevato");
         String originalTechnicalDescription = string(payload.get("originalTechnicalDescription"), "");
-        String current = originalTechnicalDescription.isBlank()
-            ? string(payload.get("currentDescription"), "")
-            : originalTechnicalDescription;
+        String current = string(payload.get("currentDescription"), "");
         String rawNote = string(payload.get("freeTechnicalNote"), "");
         String voiceNote = string(payload.get("transcribedVoiceNote"), "");
         String textToRewrite = "FORMALIZE".equalsIgnoreCase(mode)
-            ? textToRewrite(current, rawNote, voiceNote)
+            ? textToRewrite(current.isBlank() ? originalTechnicalDescription : current, rawNote, voiceNote)
             : textToRewrite(
-                current,
+                generationContext(payload, objectName),
                 rawNote.isBlank() ? "Verificare " + objectName + " e predisporre offerta per materiali e manodopera indicati." : rawNote,
                 voiceNote
             );
 
         if (textToRewrite.isBlank()) {
-            return Mono.just(Map.of("formalizedText", ""));
+            return Map.of("formalizedText", "");
         }
 
         String cacheKey = formalizationCacheKey(mode, objectName, textToRewrite);
         String cached = formalizationCache.get(cacheKey);
         if (cached != null) {
-            return Mono.just(Map.of("formalizedText", cached));
+            return Map.of("formalizedText", cached);
         }
 
-        return requestFormalization(FORMALIZE_INSTRUCTION, textToRewrite, false)
-            .flatMap(first -> {
-                String cleaned = postProcessFormalizedText(first, textToRewrite, objectName);
-                if (!sameText(cleaned, textToRewrite)) {
-                    return Mono.just(cleaned);
-                }
-                return requestFormalization(STRICT_FORMALIZE_INSTRUCTION, textToRewrite, true)
-                    .map(second -> postProcessFormalizedText(second, textToRewrite, objectName));
-            })
-            .onErrorReturn(postProcessFormalizedText(textToRewrite, textToRewrite, objectName))
-            .doOnNext(text -> formalizationCache.putIfAbsent(cacheKey, text))
-            .map(text -> Map.<String, Object>of("formalizedText", text));
+        try {
+            String first = requestFormalization(FORMALIZE_INSTRUCTION, textToRewrite, false).block();
+            String text = postProcessFormalizedText(first, textToRewrite, objectName);
+            if (sameText(text, textToRewrite)) {
+                String second = requestFormalization(STRICT_FORMALIZE_INSTRUCTION, textToRewrite, true).block();
+                text = postProcessFormalizedText(second, textToRewrite, objectName);
+            }
+            formalizationCache.putIfAbsent(cacheKey, text);
+            return Map.of("formalizedText", text);
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Formalizzazione IA non riuscita", ex);
+        }
     }
 
     @PostMapping(path = "/api/ai/formalize-transcription", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -95,6 +100,18 @@ public class AiController {
             return fallback;
         }
         return String.valueOf(value);
+    }
+
+    private String generationContext(Map<String, Object> payload, String objectName) {
+        String category = string(payload.get("category"), "");
+        String laborHours = string(payload.get("laborHours"), "");
+        String materialCost = string(payload.get("materialCost"), "");
+        return textToRewrite(
+            "Oggetto: " + objectName,
+            category.isBlank() ? "" : "Categoria: " + category,
+            laborHours.isBlank() ? "" : "Ore manodopera stimate: " + laborHours,
+            materialCost.isBlank() ? "" : "Costo materiale stimato: " + materialCost
+        );
     }
 
     private Mono<String> requestFormalization(String instruction, String textToRewrite, boolean strict) {
@@ -114,8 +131,8 @@ public class AiController {
             .map(text -> text.isBlank() ? textToRewrite : text);
     }
 
-    String textToRewrite(String currentDescription, String freeTechnicalNote, String transcribedVoiceNote) {
-        return String.join("\n", List.of(currentDescription, freeTechnicalNote, transcribedVoiceNote).stream()
+    String textToRewrite(String... values) {
+        return String.join("\n", List.of(values).stream()
             .map(value -> value == null ? "" : value.replaceAll("\\s+", " ").trim())
             .filter(value -> !value.isBlank())
             .toList());

@@ -15,9 +15,10 @@
           </div>
         </section>
 
-        <div class="handoff-confirm tech-confirm" *ngIf="surveys.justSent()">
-          Rilievo inviato al back-office. La dashboard commerciale e stata aggiornata.
-        </div>
+        <a class="integration-banner" *ngIf="integrations.openRequests()[0] as request" routerLink="/tecnico/integrazioni">
+          <b>Richiesta integrazione per rilievo {{ request.inspectionId }}</b>
+          <span>{{ request.reason }}</span>
+        </a>
 
         <a class="primary-survey-card" routerLink="/tecnico/rilievi/nuovo">
           <span class="survey-icon">

@@ -94,10 +94,13 @@ export class InspectionService {
   }
 
   saveDraft(draft: InspectionDraft): Observable<InspectionDraft> {
-    const nextDraft = this.prepareForSave({ ...draft, status: 'DRAFT' });
-    const request = this.isPersistedInspection(nextDraft)
-      ? this.http.put<InspectionDraft>(`/api/tecnico/rilievi/bozze/${nextDraft.id}`, nextDraft)
-      : this.http.post<InspectionDraft>('/api/tecnico/rilievi/bozze', nextDraft);
+    const status = draft.status === 'NEEDS_INTEGRATION' || draft.status === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'DRAFT';
+    const nextDraft = this.prepareForSave({ ...draft, status });
+    const request = status === 'IN_PROGRESS'
+      ? this.http.patch<InspectionDraft>(`/api/tecnico/rilievi/${nextDraft.id}`, nextDraft)
+      : this.isPersistedInspection(nextDraft)
+        ? this.http.put<InspectionDraft>(`/api/tecnico/rilievi/bozze/${nextDraft.id}`, nextDraft)
+        : this.http.post<InspectionDraft>('/api/tecnico/rilievi/bozze', nextDraft);
     return request.pipe(
       tap((saved) => this.upsert(saved))
     );
@@ -145,9 +148,9 @@ export class InspectionService {
   }
 
   formalizeDescription(item: InspectionItem): Observable<string> {
-    const originalTechnicalDescription = this.originalTechnicalDescription(item);
-    item.originalTechnicalDescription = originalTechnicalDescription;
-    const mode = originalTechnicalDescription ? 'FORMALIZE' : 'GENERATE';
+    const originalTechnicalDescription = this.sourceTechnicalDescription(item);
+    const currentDescription = this.currentFormalizedDescription(item);
+    const mode = currentDescription ? 'FORMALIZE' : 'GENERATE';
     const payload = {
       mode,
       objectName: item.catalogItemName,
@@ -155,7 +158,7 @@ export class InspectionService {
       laborHours: item.laborHours,
       materialCost: item.materialCost,
       originalTechnicalDescription,
-      currentDescription: originalTechnicalDescription,
+      currentDescription,
       freeTechnicalNote: item.rawNote?.trim() ?? '',
       transcribedVoiceNote: item.transcribedNote?.trim() ?? '',
       photoMetadata: item.photos.map((photo) => ({
@@ -169,7 +172,7 @@ export class InspectionService {
     return this.http.post<{ text?: string; formalizedText?: string; description?: string }>('/api/ai/formalize-description', payload).pipe(
       map((response) => response.formalizedText ?? response.text ?? response.description ?? ''),
       map((text) => this.normalizeFormalizedPrefix(text, item.catalogItemName)),
-      catchError(() => of(this.buildFormalDescription(item, mode)))
+      catchError((error) => throwError(() => error))
     );
   }
 
@@ -255,8 +258,14 @@ export class InspectionService {
     listMaterialPrice: item.listMaterialPrice
   });
 
-  private originalTechnicalDescription(item: InspectionItem): string {
-    return (item.originalTechnicalDescription ?? item.formalizedDescription ?? item.catalogItemName ?? '')
+  private sourceTechnicalDescription(item: InspectionItem): string {
+    return (item.originalTechnicalDescription ?? '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private currentFormalizedDescription(item: InspectionItem): string {
+    return (item.formalizedDescription ?? '')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -275,7 +284,7 @@ export class InspectionService {
 
   private buildFormalDescription(item: InspectionItem, mode: 'GENERATE' | 'FORMALIZE'): string {
     const objectName = item.catalogItemName || 'componente rilevato';
-    const currentDescription = this.originalTechnicalDescription(item);
+    const currentDescription = this.currentFormalizedDescription(item);
     if (mode === 'FORMALIZE' && currentDescription) {
       return currentDescription.length < 60
         ? `Si segnala la necessita di intervento su ${currentDescription.toLowerCase()}.`

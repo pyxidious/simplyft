@@ -1,10 +1,8 @@
 import { CommonModule, CurrencyPipe } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { InspectionDraft } from '../../../core/models/simplyft.models';
-import { InspectionService } from '../../../core/services/inspection.service';
-import { QuoteMockService } from '../../../core/services/quote-mock.service';
-import { SurveyMockService } from '../../../core/services/survey-mock.service';
+import { CommercialDashboard, CommercialDashboardInspection } from '../../../core/models/simplyft.models';
+import { CommercialDashboardService } from '../../../core/services/commercial-dashboard.service';
 import { DataTableComponent } from '../../../shared/components/data-table/data-table.component';
 import { KpiCardComponent } from '../../../shared/components/kpi-card/kpi-card.component';
 
@@ -16,25 +14,34 @@ import { KpiCardComponent } from '../../../shared/components/kpi-card/kpi-card.c
   styleUrl: './office-dashboard.component.css'
 })
 export class OfficeDashboardComponent implements OnInit {
-  surveyRows = signal<Record<string, string>[]>([]);
-
-  constructor(
-    public quotes: QuoteMockService,
-    public surveys: SurveyMockService,
-    private inspections: InspectionService
-  ) {}
+  constructor(public dashboardService: CommercialDashboardService) {}
 
   ngOnInit(): void {
-    this.inspections.listForCommercialReview().subscribe({
-      next: (inspections) => this.surveyRows.set(inspections.map((inspection) => this.toSurveyRow(inspection))),
-      error: () => this.surveyRows.set([])
-    });
+    this.dashboardService.load();
   }
 
-  private toSurveyRow(inspection: InspectionDraft): Record<string, string> {
+  dashboard(): CommercialDashboard | undefined {
+    return this.dashboardService.dashboard();
+  }
+
+  surveyRows(dashboard: CommercialDashboard): Record<string, string>[] {
+    return dashboard.recentInspections.map((inspection) => this.toSurveyRow(inspection));
+  }
+
+  maxTrendValue(): number {
+    const values = this.dashboard()?.opportunityTrend.map((point) => Number(point.value)) ?? [];
+    return Math.max(...values, 0);
+  }
+
+  trendHeight(value: number): string {
+    const max = this.maxTrendValue();
+    return max <= 0 ? '0%' : `${Math.max(8, Math.round((Number(value) / max) * 100))}%`;
+  }
+
+  private toSurveyRow(inspection: CommercialDashboardInspection): Record<string, string> {
     return {
       Cliente: inspection.customerName,
-      Impianto: inspection.plantCode ?? '-',
+      Impianto: inspection.plantCode || '-',
       Tecnico: inspection.technicianName,
       Stato: inspection.status === 'DRAFT' ? 'Bozza' : 'Da verificare'
     };

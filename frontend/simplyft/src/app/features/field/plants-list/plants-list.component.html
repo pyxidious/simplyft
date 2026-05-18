@@ -26,7 +26,8 @@
       <div class="plant-copy">
         <b>{{ plant.customer }}</b>
         <p>{{ plant.code }} - {{ plant.brand }} {{ plant.model }}</p>
-        <small>Ultimo rilievo {{ plant.lastSurvey }}</small>
+        <small>{{ plant.assignmentCode || 'Assegnazione' }} - {{ plant.assignmentTitle || 'Attivita assegnata' }}</small>
+        <small>Assegnato a {{ plant.assignedTo || 'tecnico corrente' }} · ultimo rilievo {{ plant.lastSurvey }}</small>
       </div>
       <div class="card-actions">
         <app-status-badge [label]="label(plant.status)" [tone]="tone(plant.status)" />
@@ -35,7 +36,7 @@
     </article>
 
     <div class="empty-state" *ngIf="!plants.search(query(), status()).length">
-      Nessun impianto trovato con i filtri selezionati.
+      Nessun dato disponibile
     </div>
   </main>
 </section>

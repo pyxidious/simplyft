@@ -12,9 +12,9 @@
           <p *ngFor="let error of errors()">{{ error }}</p>
         </div>
 
-        <section class="readonly-context" *ngIf="readOnly()">
+        <section class="readonly-context" *ngIf="readOnly() || inspectionStatus() === 'NEEDS_INTEGRATION' || inspectionStatus() === 'IN_PROGRESS'">
           <div>
-            <p class="eyebrow">Rilievo inviato</p>
+            <p class="eyebrow">{{ readOnly() ? 'Rilievo inviato' : 'Integrazione richiesta' }}</p>
             <h2>{{ selectedCustomer()?.customerName || 'Cliente non disponibile' }}</h2>
             <span class="status-badge success">{{ inspectionStatus() }}</span>
           </div>

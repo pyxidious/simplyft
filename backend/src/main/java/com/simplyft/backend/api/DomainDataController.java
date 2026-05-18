@@ -8,6 +8,7 @@ import com.simplyft.backend.domain.PreventivoHeader;
 import com.simplyft.backend.domain.PreventivoRiga;
 import com.simplyft.backend.repository.ArticoloOggettoRepository;
 import com.simplyft.backend.repository.AttivitaTecnicoRepository;
+import com.simplyft.backend.repository.ClienteRepository;
 import com.simplyft.backend.repository.ImpiantoRepository;
 import com.simplyft.backend.repository.NotificaSistemaRepository;
 import com.simplyft.backend.repository.PreventivoHeaderRepository;
@@ -38,6 +39,7 @@ public class DomainDataController {
 
     private final AttivitaTecnicoRepository attivitaTecnicoRepository;
     private final NotificaSistemaRepository notificaSistemaRepository;
+    private final ClienteRepository clienteRepository;
     private final ImpiantoRepository impiantoRepository;
     private final ArticoloOggettoRepository articoloOggettoRepository;
     private final PreventivoHeaderRepository preventivoHeaderRepository;
@@ -47,6 +49,7 @@ public class DomainDataController {
     public DomainDataController(
         AttivitaTecnicoRepository attivitaTecnicoRepository,
         NotificaSistemaRepository notificaSistemaRepository,
+        ClienteRepository clienteRepository,
         ImpiantoRepository impiantoRepository,
         ArticoloOggettoRepository articoloOggettoRepository,
         PreventivoHeaderRepository preventivoHeaderRepository,
@@ -55,6 +58,7 @@ public class DomainDataController {
     ) {
         this.attivitaTecnicoRepository = attivitaTecnicoRepository;
         this.notificaSistemaRepository = notificaSistemaRepository;
+        this.clienteRepository = clienteRepository;
         this.impiantoRepository = impiantoRepository;
         this.articoloOggettoRepository = articoloOggettoRepository;
         this.preventivoHeaderRepository = preventivoHeaderRepository;
@@ -87,17 +91,140 @@ public class DomainDataController {
         );
     }
 
-    @GetMapping({"/field/plants", "/tecnico/plants"})
-    public List<Map<String, Object>> plants() {
+    @GetMapping("/commerciale/dashboard")
+    public Map<String, Object> commercialDashboard(@AuthenticationPrincipal AuthUser user) {
+        requireCommercial(user);
+        List<Map<String, Object>> recentQuotes = jdbc.query("""
+            SELECT p.id, p.numero_foglio, p.stato, p.priorita, p.assegnatario, p.validazione_tecnica,
+                   p.totale_offerta, p.aggiornato_il, c.ragione_sociale, i.codice_impianto
+            FROM preventivi_header p
+            JOIN rilievi r ON r.id = p.rilievo_id
+            LEFT JOIN clienti c ON c.id = r.cliente_id
+            LEFT JOIN impianti i ON i.id = r.impianto_id
+            WHERE r.stato <> 'DRAFT'
+            ORDER BY p.aggiornato_il DESC, p.id DESC
+            LIMIT 5
+            """, (rs, rowNum) -> dto(
+                "id", "q-" + rs.getLong("id"),
+                "sheetNumber", rs.getString("numero_foglio"),
+                "customer", string(rs.getString("ragione_sociale"), "Cliente non disponibile"),
+                "plantCode", string(rs.getString("codice_impianto"), "-"),
+                "status", rs.getString("stato"),
+                "priority", string(rs.getString("priorita"), "Media"),
+                "assignee", string(rs.getString("assegnatario"), "-"),
+                "technicalValidation", string(rs.getString("validazione_tecnica"), "Da verificare"),
+                "estimatedValue", rs.getBigDecimal("totale_offerta"),
+                "lastUpdated", formatDateTime(rs.getObject("aggiornato_il", OffsetDateTime.class))
+            ));
+        List<Map<String, Object>> recentInspections = jdbc.query("""
+            SELECT r.id, r.stato, r.tecnico_nome, r.aggiornato_il, c.ragione_sociale, i.codice_impianto
+            FROM rilievi r
+            LEFT JOIN clienti c ON c.id = r.cliente_id
+            LEFT JOIN impianti i ON i.id = r.impianto_id
+            WHERE r.stato <> 'DRAFT'
+            ORDER BY r.aggiornato_il DESC, r.id DESC
+            LIMIT 5
+            """, (rs, rowNum) -> dto(
+                "id", "insp-" + rs.getLong("id"),
+                "customerName", string(rs.getString("ragione_sociale"), "Cliente non associato"),
+                "plantCode", string(rs.getString("codice_impianto"), "-"),
+                "technicianName", rs.getString("tecnico_nome"),
+                "status", rs.getString("stato"),
+                "updatedAt", formatDateTime(rs.getObject("aggiornato_il", OffsetDateTime.class))
+            ));
+        List<Map<String, Object>> recentCustomers = jdbc.query("""
+            SELECT DISTINCT ON (c.id) c.id, c.ragione_sociale, c.citta, c.email, r.aggiornato_il
+            FROM rilievi r
+            JOIN clienti c ON c.id = r.cliente_id
+            WHERE r.stato <> 'DRAFT'
+            ORDER BY c.id, r.aggiornato_il DESC
+            LIMIT 5
+            """, (rs, rowNum) -> dto(
+                "id", "c-" + rs.getLong("id"),
+                "name", rs.getString("ragione_sociale"),
+                "city", string(rs.getString("citta"), "-"),
+                "email", string(rs.getString("email"), "-")
+            ));
+        List<Map<String, Object>> opportunityTrend = jdbc.query("""
+            SELECT data_creazione, COALESCE(SUM(totale_offerta), 0) AS total
+            FROM preventivi_header p
+            JOIN rilievi r ON r.id = p.rilievo_id
+            WHERE r.stato <> 'DRAFT'
+            GROUP BY p.data_creazione
+            ORDER BY data_creazione DESC
+            LIMIT 6
+            """, (rs, rowNum) -> dto(
+                "label", rs.getDate("data_creazione").toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM")),
+                "value", rs.getBigDecimal("total")
+            )).reversed();
+
+        long openQuotes = countFor("""
+            SELECT COUNT(*)
+            FROM preventivi_header p
+            JOIN rilievi r ON r.id = p.rilievo_id
+            WHERE r.stato <> 'DRAFT'
+              AND COALESCE(p.stato, '') NOT IN ('CONFIRMED', 'ACCETTATO', 'RIFIUTATO', 'CHIUSO')
+            """);
+        long submittedInspections = countFor("SELECT COUNT(*) FROM rilievi WHERE stato <> 'DRAFT'");
+        long waitingItems = countFor("""
+            SELECT COUNT(*) FROM rilievi WHERE stato IN ('SUBMITTED', 'COMMERCIAL_REVIEW', 'IN_REVIEW')
+            """);
+        BigDecimal pipelineValue = jdbc.queryForObject("""
+            SELECT COALESCE(SUM(p.totale_offerta), 0)
+            FROM preventivi_header p
+            JOIN rilievi r ON r.id = p.rilievo_id
+            WHERE r.stato <> 'DRAFT'
+              AND COALESCE(p.stato, '') NOT IN ('CONFIRMED', 'ACCETTATO', 'RIFIUTATO', 'CHIUSO')
+            """, BigDecimal.class);
+
+        return dto(
+            "kpis", List.of(
+                kpi("Preventivi aperti", String.valueOf(openQuotes), "Da database", "flat"),
+                kpi("Rilievi ricevuti", String.valueOf(submittedInspections), "Da verificare", "flat"),
+                kpi("In attesa", String.valueOf(waitingItems), "Rilievi aperti", waitingItems > 0 ? "warn" : "flat"),
+                kpi("Valore pipeline", formatEuro(pipelineValue), "Preventivi aperti", "flat")
+            ),
+            "recentInspections", recentInspections,
+            "recentQuotes", recentQuotes,
+            "recentCustomers", recentCustomers,
+            "opportunityTrend", opportunityTrend
+        );
+    }
+
+    @GetMapping({"/field/plants", "/tecnico/plants", "/tecnico/impianti"})
+    public List<Map<String, Object>> plants(@AuthenticationPrincipal AuthUser user) {
+        if (user != null && "tecnico".equals(user.role())) {
+            return jdbc.query("""
+                SELECT DISTINCT ON (i.id) i.*, c.ragione_sociale, a.codice AS assignment_code,
+                       a.titolo AS assignment_title, a.assegnata_a, a.scadenza
+                FROM impianti i
+                JOIN attivita_tecnico a ON a.impianto_id = i.id
+                LEFT JOIN clienti c ON c.id = i.cliente_id
+                WHERE a.tecnico_id = ? OR a.assegnata_a = ?
+                ORDER BY i.id, a.scadenza ASC NULLS LAST, a.id ASC
+                """, (rs, rowNum) -> plantDtoFromRow(rs), user.id(), user.name());
+        }
         return impiantoRepository.findAllByOrderByUltimoRilievoDesc()
             .stream()
             .map(this::toPlantDto)
             .toList();
     }
 
-    @GetMapping({"/field/plants/{id}", "/tecnico/plants/{id}"})
-    public Map<String, Object> plant(@PathVariable String id) {
+    @GetMapping({"/field/plants/{id}", "/tecnico/plants/{id}", "/tecnico/impianti/{id}"})
+    public Map<String, Object> plant(@PathVariable String id, @AuthenticationPrincipal AuthUser user) {
         Long plantId = parsePrefixedId(id, "p-");
+        if (user != null && "tecnico".equals(user.role())) {
+            return jdbc.query("""
+                SELECT DISTINCT ON (i.id) i.*, c.ragione_sociale, a.codice AS assignment_code,
+                       a.titolo AS assignment_title, a.assegnata_a, a.scadenza
+                FROM impianti i
+                JOIN attivita_tecnico a ON a.impianto_id = i.id
+                LEFT JOIN clienti c ON c.id = i.cliente_id
+                WHERE i.id = ? AND (a.tecnico_id = ? OR a.assegnata_a = ?)
+                ORDER BY i.id, a.scadenza ASC NULLS LAST, a.id ASC
+                """, (rs, rowNum) -> plantDtoFromRow(rs), plantId, user.id(), user.name()).stream().findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Impianto non assegnato al tecnico"));
+        }
         return impiantoRepository.findById(plantId)
             .map(this::toPlantDto)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Impianto non trovato"));
@@ -105,12 +232,18 @@ public class DomainDataController {
 
     @GetMapping("/customers/search")
     public List<Map<String, Object>> customers() {
-        return plants();
+        return impiantoRepository.findAllByOrderByUltimoRilievoDesc()
+            .stream()
+            .map(this::toPlantDto)
+            .toList();
     }
 
     @GetMapping("/customers/{id}")
     public Map<String, Object> customer(@PathVariable String id) {
-        Map<String, Object> plant = plant(id);
+        Long plantId = parsePrefixedId(id, "p-");
+        Map<String, Object> plant = impiantoRepository.findById(plantId)
+            .map(this::toPlantDto)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Impianto non trovato"));
         return dto(
             "id", plant.get("id"),
             "customerName", plant.get("customer"),
@@ -244,6 +377,32 @@ public class DomainDataController {
             "completeness", plant.getCompletezza(),
             "status", plant.getStato(),
             "lastSurvey", plant.getUltimoRilievo().format(DATE_TIME_FORMAT)
+        );
+    }
+
+    private Map<String, Object> plantDtoFromRow(java.sql.ResultSet rs) throws java.sql.SQLException {
+        String city = rs.getString("citta");
+        String address = rs.getString("indirizzo_installazione");
+        return dto(
+            "id", "p-" + rs.getLong("id"),
+            "customer", rs.getString("ragione_sociale"),
+            "address", joinAddress(address, city),
+            "code", String.valueOf(rs.getInt("codice_impianto")),
+            "serial", rs.getString("matricola"),
+            "type", rs.getString("tipologia"),
+            "brand", rs.getString("marca"),
+            "model", rs.getString("modello"),
+            "estimatedYear", rs.getInt("anno_stimato"),
+            "notes", rs.getString("note_tecniche_struttura"),
+            "completeness", rs.getInt("completezza"),
+            "status", rs.getString("stato"),
+            "lastSurvey", rs.getObject("ultimo_rilievo", OffsetDateTime.class) == null
+                ? "-"
+                : rs.getObject("ultimo_rilievo", OffsetDateTime.class).format(DATE_TIME_FORMAT),
+            "assignedTo", rs.getString("assegnata_a"),
+            "assignmentCode", rs.getString("assignment_code"),
+            "assignmentTitle", rs.getString("assignment_title"),
+            "assignmentDueDate", rs.getObject("scadenza") == null ? null : String.valueOf(rs.getObject("scadenza"))
         );
     }
 
@@ -469,6 +628,33 @@ public class DomainDataController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accesso riservato ai tecnici");
         }
         return user;
+    }
+
+    private AuthUser requireCommercial(AuthUser user) {
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Autenticazione richiesta");
+        }
+        if (!"commerciale".equals(user.role()) && !"amministratore".equals(user.role())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Accesso riservato al commerciale");
+        }
+        return user;
+    }
+
+    private long countFor(String sql) {
+        Long count = jdbc.queryForObject(sql, Long.class);
+        return count == null ? 0 : count;
+    }
+
+    private Map<String, Object> kpi(String label, String value, String trend, String trendTone) {
+        return dto("label", label, "value", value, "trend", trend, "trendTone", trendTone);
+    }
+
+    private String formatEuro(BigDecimal value) {
+        return "EUR " + (value == null ? BigDecimal.ZERO : value).setScale(0, java.math.RoundingMode.HALF_UP);
+    }
+
+    private String formatDateTime(OffsetDateTime value) {
+        return value == null ? "-" : value.format(DATE_TIME_FORMAT);
     }
 
     private BigDecimal decimal(Object value) {

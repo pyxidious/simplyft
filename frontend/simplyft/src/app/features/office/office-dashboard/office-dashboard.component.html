@@ -1,47 +1,57 @@
 <section class="commercial-page">
-  <div class="handoff-confirm" *ngIf="surveys.justSent()">Nuovo rilievo ricevuto dal campo: scheda strutturata pronta per preventivo.</div>
+  <div class="state-message" *ngIf="dashboardService.loading()">Caricamento dati dashboard...</div>
+  <div class="state-message error" *ngIf="dashboardService.error()">{{ dashboardService.error() }}</div>
 
-  <div class="kpi-grid">
-    <app-kpi-card label="Preventivi aperti" value="18" trend="+12%" trendTone="up" />
-    <app-kpi-card label="Rilievi ricevuti" value="7 oggi" trend="3 nuovi" trendTone="up" />
-    <app-kpi-card label="In attesa" value="5" trend="2 warning" trendTone="warn" />
-    <app-kpi-card label="Valore pipeline" value="EUR 143k" trend="+8.4%" trendTone="up" />
-  </div>
+  <ng-container *ngIf="dashboard() as dashboard">
+    <div class="kpi-grid" *ngIf="dashboard.kpis.length; else noKpi">
+      <app-kpi-card
+        *ngFor="let kpi of dashboard.kpis"
+        [label]="kpi.label"
+        [value]="kpi.value"
+        [trend]="kpi.trend"
+        [trendTone]="kpi.trendTone" />
+    </div>
+    <ng-template #noKpi><p class="empty-state">Nessun dato disponibile</p></ng-template>
 
-  <div class="dashboard-grid">
-    <section class="panel wide-card">
-      <div class="section-head">
-        <h2>Nuovi rilievi dal campo</h2>
-        <a routerLink="/commerciale/preventivi">Apri preventivi</a>
-      </div>
-      <app-data-table [columns]="['Cliente','Impianto','Tecnico','Stato']" [rows]="surveyRows()" />
-    </section>
+    <div class="dashboard-grid">
+      <section class="panel wide-card">
+        <div class="section-head">
+          <h2>Nuovi rilievi dal campo</h2>
+          <a routerLink="/commerciale/preventivi">Apri preventivi</a>
+        </div>
+        <app-data-table *ngIf="surveyRows(dashboard).length; else noInspections" [columns]="['Cliente','Impianto','Tecnico','Stato']" [rows]="surveyRows(dashboard)" />
+        <ng-template #noInspections><p class="empty-state">Nessun dato disponibile</p></ng-template>
+      </section>
 
-    <section class="panel">
-      <h2>Priorita di oggi</h2>
-      <p class="priority" *ngFor="let quote of quotes.quotes()">
-        <b>{{ quote.customer }}</b>
-        <span>{{ quote.estimatedValue | currency:'EUR':'symbol':'1.0-0' }}</span>
-      </p>
-    </section>
+      <section class="panel">
+        <h2>Preventivi recenti</h2>
+        <ng-container *ngIf="dashboard.recentQuotes.length; else noQuotes">
+          <p class="priority" *ngFor="let quote of dashboard.recentQuotes">
+            <b>{{ quote.customer }}</b>
+            <span>{{ quote.estimatedValue | currency:'EUR':'symbol':'1.0-0' }}</span>
+          </p>
+        </ng-container>
+        <ng-template #noQuotes><p class="empty-state">Nessun dato disponibile</p></ng-template>
+      </section>
 
-    <section class="panel">
-      <h2>Anomalie da verificare</h2>
-      <p class="warning-line">Foto targhetta motore mancante</p>
-      <p class="warning-line">Portata montacarichi incoerente</p>
-      <p class="warning-line">Listino fornitore non aggiornato</p>
-    </section>
+      <section class="panel">
+        <h2>Clienti recenti</h2>
+        <ng-container *ngIf="dashboard.recentCustomers.length; else noCustomers">
+          <p class="customer-line" *ngFor="let customer of dashboard.recentCustomers">
+            <b>{{ customer.name }}</b>
+            <span>{{ customer.city }}</span>
+          </p>
+        </ng-container>
+        <ng-template #noCustomers><p class="empty-state">Nessun dato disponibile</p></ng-template>
+      </section>
 
-    <section class="panel wide-card">
-      <h2>Andamento opportunita</h2>
-      <div class="area-chart">
-        <span style="height: 35%"></span>
-        <span style="height: 58%"></span>
-        <span style="height: 42%"></span>
-        <span style="height: 72%"></span>
-        <span style="height: 64%"></span>
-        <span style="height: 88%"></span>
-      </div>
-    </section>
-  </div>
+      <section class="panel wide-card">
+        <h2>Andamento opportunita</h2>
+        <div class="area-chart" *ngIf="dashboard.opportunityTrend.length; else noTrend">
+          <span *ngFor="let point of dashboard.opportunityTrend" [style.height]="trendHeight(point.value)" [title]="point.label + ': EUR ' + point.value"></span>
+        </div>
+        <ng-template #noTrend><p class="empty-state">Nessun dato disponibile</p></ng-template>
+      </section>
+    </div>
+  </ng-container>
 </section>

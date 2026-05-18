@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { SurveyMockService } from '../../../core/services/survey-mock.service';
 import { FieldHomeActivity, FieldHomeService } from '../../../core/services/field-home.service';
+import { IntegrazioniTecnicoService } from '../../../core/services/integrazioni-tecnico.service';
 
 @Component({
   selector: 'app-field-home',
@@ -11,10 +11,14 @@ import { FieldHomeActivity, FieldHomeService } from '../../../core/services/fiel
   styleUrl: './field-home.component.css'
 })
 export class FieldHomeComponent implements OnInit {
-  constructor(public home: FieldHomeService, public surveys: SurveyMockService) {}
+  constructor(
+    public home: FieldHomeService,
+    public integrations: IntegrazioniTecnicoService
+  ) {}
 
   ngOnInit(): void {
     this.home.load();
+    this.integrations.load();
   }
 
   iconFor(activity: FieldHomeActivity): string {

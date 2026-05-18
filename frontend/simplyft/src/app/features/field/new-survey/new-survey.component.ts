@@ -40,7 +40,7 @@ export class NewSurveyComponent implements OnInit {
 
   totalLaborHours = computed(() => this.items().reduce((sum, item) => sum + this.asNumber(item.laborHours), 0));
   totalMaterialCost = computed(() => this.items().reduce((sum, item) => sum + this.asNumber(item.materialCost), 0));
-  readOnly = computed(() => this.inspectionStatus() !== 'DRAFT');
+  readOnly = computed(() => !['DRAFT', 'NEEDS_INTEGRATION', 'IN_PROGRESS'].includes(this.inspectionStatus()));
 
   constructor(
     private route: ActivatedRoute,
@@ -152,7 +152,7 @@ export class NewSurveyComponent implements OnInit {
       this.errors.set(['Il rilievo e gia stato inviato e non puo essere modificato.']);
       return;
     }
-    const draft = this.buildDraft('DRAFT');
+    const draft = this.buildDraft(this.inspectionStatus() === 'NEEDS_INTEGRATION' || this.inspectionStatus() === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'DRAFT');
     if (!draft) {
       return;
     }
@@ -240,7 +240,7 @@ export class NewSurveyComponent implements OnInit {
     });
   }
 
-  private buildDraft(status: 'DRAFT' | 'SUBMITTED'): InspectionDraft | undefined {
+  private buildDraft(status: 'DRAFT' | 'SUBMITTED' | 'IN_PROGRESS'): InspectionDraft | undefined {
     const user = this.auth.currentUser();
     const customer = this.selectedCustomer();
     if (!user) {

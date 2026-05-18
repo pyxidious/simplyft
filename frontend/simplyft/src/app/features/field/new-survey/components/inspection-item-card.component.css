@@ -356,7 +356,8 @@
 
 /* TRANSCRIPT / NOTES */
 
-.voice-error {
+.voice-error,
+.ai-error {
   margin: 12px 0;
   padding: 12px 14px;
   border-radius: 16px;

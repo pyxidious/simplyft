@@ -1,6 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { KanbanBoardComponent } from '../../../shared/components/kanban-board/kanban-board.component';
-import { PipelineMockService } from '../../../core/services/pipeline-mock.service';
+import { PipelineCommercialeService } from '../../../core/services/pipeline-commerciale.service';
 
 @Component({
   selector: 'app-pipeline',
@@ -9,6 +9,10 @@ import { PipelineMockService } from '../../../core/services/pipeline-mock.servic
   templateUrl: './pipeline.component.html',
   styleUrl: './pipeline.component.css'
 })
-export class PipelineComponent {
-  constructor(public pipeline: PipelineMockService) {}
+export class PipelineComponent implements OnInit {
+  constructor(public pipeline: PipelineCommercialeService) {}
+
+  ngOnInit(): void {
+    this.pipeline.load();
+  }
 }

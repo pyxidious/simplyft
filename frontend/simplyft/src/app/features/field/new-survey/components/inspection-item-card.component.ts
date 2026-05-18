@@ -22,6 +22,7 @@ export class InspectionItemCardComponent implements OnDestroy {
   @Output() duplicate = new EventEmitter<InspectionItem>();
 
   busyDescription = signal(false);
+  descriptionError = signal('');
   voiceState = signal<VoiceState>('idle');
   voiceError = signal('');
   elapsedSeconds = signal(0);
@@ -88,6 +89,7 @@ export class InspectionItemCardComponent implements OnDestroy {
       return;
     }
     this.busyDescription.set(true);
+    this.descriptionError.set('');
     this.item.pendingOperation = true;
     this.changed();
     this.inspections.formalizeDescription(this.item).subscribe({
@@ -98,6 +100,7 @@ export class InspectionItemCardComponent implements OnDestroy {
         this.changed();
       },
       error: () => {
+        this.descriptionError.set('Formalizzazione IA non riuscita');
         this.busyDescription.set(false);
         this.item.pendingOperation = false;
         this.changed();

@@ -11,7 +11,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const request = token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;
   return next(request).pipe(
     catchError((error) => {
-      if (error.status === 401 && !req.url.includes('/api/auth/login')) {
+      if (error.status === 401 && !req.url.includes('/api/auth/login') && !req.url.includes('/api/ai/')) {
         localStorage.removeItem('simplyft-auth-token');
         auth.currentUser.set(null);
         router.navigateByUrl('/login');

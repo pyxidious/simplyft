@@ -1,0 +1,100 @@
+<section class="commercial-page">
+  <div class="section-head">
+    <div>
+      <p>Commerciale</p>
+      <h2>Assegnazioni</h2>
+    </div>
+    <span>Attivita reali assegnate ai tecnici</span>
+  </div>
+
+  <div class="state-message" *ngIf="assignments.loading()">Caricamento dati...</div>
+  <div class="state-message error" *ngIf="assignments.error()">{{ assignments.error() }}</div>
+
+  <section class="panel">
+    <div class="panel-title">
+      <div>
+        <h2>Anagrafica clienti e impianti</h2>
+        <p>Inserisci nuovi dati da usare subito nelle assegnazioni tecniche.</p>
+      </div>
+    </div>
+
+    <div class="registry-grid">
+      <form class="registry-form" (ngSubmit)="createCustomer()">
+        <h3>Nuovo cliente</h3>
+        <label>Ragione sociale <input [(ngModel)]="newCustomer.name" name="customerName" required /></label>
+        <label>Citta <input [(ngModel)]="newCustomer.city" name="customerCity" /></label>
+        <label>Email <input type="email" [(ngModel)]="newCustomer.email" name="customerEmail" /></label>
+        <label>Telefono <input [(ngModel)]="newCustomer.phone" name="customerPhone" /></label>
+        <button class="btn secondary" type="submit">Salva cliente</button>
+      </form>
+
+      <form class="registry-form" (ngSubmit)="createPlant()">
+        <h3>Nuovo impianto</h3>
+        <label>Cliente
+          <select [(ngModel)]="newPlant.customerId" name="plantCustomerId" required>
+            <option value="">Seleziona cliente</option>
+            <option *ngFor="let customer of assignments.customers()" [value]="customer.id">{{ customer.name }}</option>
+          </select>
+        </label>
+        <label>Matricola <input [(ngModel)]="newPlant.serial" name="plantSerial" /></label>
+        <label>Indirizzo <input [(ngModel)]="newPlant.address" name="plantAddress" /></label>
+        <label>Citta <input [(ngModel)]="newPlant.city" name="plantCity" /></label>
+        <label>Tipologia <input [(ngModel)]="newPlant.type" name="plantType" /></label>
+        <button class="btn secondary" type="submit">Salva impianto</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Nuova assegnazione</h2>
+    <form class="assignment-form" (ngSubmit)="submit()">
+      <label>Tecnico
+        <select [(ngModel)]="form.technicianId" name="technicianId" required>
+          <option value="">Seleziona tecnico</option>
+          <option *ngFor="let technician of assignments.technicians()" [value]="technician.id">{{ technician.name }}</option>
+        </select>
+      </label>
+      <label>Cliente
+        <select [ngModel]="form.customerId" (ngModelChange)="customerChanged($event)" name="customerId">
+          <option value="">Tutti i clienti</option>
+          <option *ngFor="let customer of assignments.customers()" [value]="customer.id">{{ customer.name }}</option>
+        </select>
+      </label>
+      <label>Impianto
+        <select [(ngModel)]="form.plantId" name="plantId" required>
+          <option value="">Seleziona impianto</option>
+          <option *ngFor="let plant of assignments.plants()" [value]="plant.id">{{ plant.customerName }} - {{ plant.code }}</option>
+        </select>
+      </label>
+      <label>Titolo <input [(ngModel)]="form.title" name="title" required /></label>
+      <label>Descrizione <textarea [(ngModel)]="form.description" name="description"></textarea></label>
+      <label>Priorita
+        <select [(ngModel)]="form.priority" name="priority">
+          <option>Alta</option>
+          <option>Media</option>
+          <option>Bassa</option>
+        </select>
+      </label>
+      <label>Scadenza <input type="date" [(ngModel)]="form.dueDate" name="dueDate" /></label>
+      <label>Stato
+        <select [(ngModel)]="form.status" name="status">
+          <option value="assegnata">Assegnata</option>
+          <option value="in_corso">In corso</option>
+        </select>
+      </label>
+      <button class="btn primary" type="submit" [disabled]="assignments.saving()">Crea assegnazione</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Attivita assegnate</h2>
+    <article class="assignment-row" *ngFor="let item of assignments.assignments()">
+      <div>
+        <b>{{ item.title }}</b>
+        <p>{{ item.customerName }} - impianto {{ item.plantCode }} - {{ item.technicianName }}</p>
+        <small>{{ item.priority }} · {{ item.status }} · {{ item.dueDate || 'nessuna scadenza' }}</small>
+      </div>
+    </article>
+    <p class="empty-state" *ngIf="!assignments.loading() && !assignments.assignments().length">Nessun dato disponibile</p>
+  </section>
+</section>

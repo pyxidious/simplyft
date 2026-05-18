@@ -55,6 +55,7 @@ describe('InspectionService', () => {
     const outputs: string[] = [];
 
     for (let click = 1; click <= 4; click++) {
+      const currentBeforeClick = item.formalizedDescription ?? '';
       service.formalizeDescription(item).subscribe((text) => {
         item.formalizedDescription = text;
         outputs.push(text);
@@ -62,7 +63,7 @@ describe('InspectionService', () => {
 
       const request = http.expectOne('/api/ai/formalize-description');
       expect(request.request.body.originalTechnicalDescription).toBe('Verificare serratura.');
-      expect(request.request.body.currentDescription).toBe('Verificare serratura.');
+      expect(request.request.body.currentDescription).toBe(currentBeforeClick);
       request.flush({
         formalizedText: `${'Intervento su Porta: '.repeat(click)}Verificare serratura.`
       });
@@ -74,6 +75,53 @@ describe('InspectionService', () => {
       'Intervento su Porta: Verificare serratura.',
       'Intervento su Porta: Verificare serratura.'
     ]);
+  });
+
+  it('sends an empty currentDescription when generating a description from scratch', () => {
+    const item: InspectionItem = {
+      id: 'line-generate',
+      catalogItemId: '2',
+      catalogItemName: 'Quadro manovra MRL 8 fermate',
+      categoryName: 'Quadri di manovra',
+      laborHours: 12.5,
+      materialCost: 5200,
+      photos: [],
+      originalTechnicalDescription: 'Fornitura e posa quadro di manovra programmato per impianto MRL.'
+    };
+
+    service.formalizeDescription(item).subscribe();
+
+    const request = http.expectOne('/api/ai/formalize-description');
+    expect(request.request.body.mode).toBe('GENERATE');
+    expect(request.request.body.originalTechnicalDescription).toBe('Fornitura e posa quadro di manovra programmato per impianto MRL.');
+    expect(request.request.body.currentDescription).toBe('');
+    request.flush({ formalizedText: 'Descrizione generata da zero.' });
+  });
+
+  it('propagates IA formalization failures without replacing the existing description', () => {
+    const item: InspectionItem = {
+      id: 'line-err',
+      catalogItemId: '1',
+      catalogItemName: 'Porta',
+      laborHours: 1,
+      materialCost: 0,
+      photos: [],
+      formalizedDescription: 'Descrizione inserita dal tecnico.'
+    };
+    let errorStatus = 0;
+
+    service.formalizeDescription(item).subscribe({
+      next: () => fail('La formalizzazione non deve produrre fallback su errore backend.'),
+      error: (error) => {
+        errorStatus = error.status;
+      }
+    });
+
+    const request = http.expectOne('/api/ai/formalize-description');
+    request.flush({ message: 'Formalizzazione IA non riuscita' }, { status: 502, statusText: 'Bad Gateway' });
+
+    expect(errorStatus).toBe(502);
+    expect(item.formalizedDescription).toBe('Descrizione inserita dal tecnico.');
   });
 
   it('submits a new inspection directly as SUBMITTED for commercial review', () => {

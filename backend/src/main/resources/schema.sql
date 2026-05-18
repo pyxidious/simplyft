@@ -79,6 +79,11 @@ CREATE TABLE IF NOT EXISTS preventivi_header (
     aggiornato_il TIMESTAMPTZ DEFAULT NOW()
 );
 
+UPDATE preventivi_header
+SET validazione_tecnica = 'Validato'
+WHERE UPPER(stato) = 'CONFIRMED'
+  AND validazione_tecnica <> 'Validato';
+
 CREATE TABLE IF NOT EXISTS preventivi_righe (
     id BIGSERIAL PRIMARY KEY,
     preventivo_id BIGINT REFERENCES preventivi_header(id) ON DELETE CASCADE,
@@ -98,6 +103,23 @@ CREATE TABLE IF NOT EXISTS preventivi_righe (
 CREATE UNIQUE INDEX IF NOT EXISTS unique_preventivo_articolo
     ON preventivi_righe (preventivo_id, articolo_id);
 
+CREATE TABLE IF NOT EXISTS preventivi_documenti (
+    preventivo_id BIGINT PRIMARY KEY REFERENCES preventivi_header(id) ON DELETE CASCADE,
+    premessa TEXT,
+    metodo_pagamento TEXT,
+    condizioni_chiusura TEXT,
+    note_finali TEXT,
+    offerta_include TEXT,
+    offerta_esclude TEXT,
+    validita_offerta TEXT,
+    tempi_consegna TEXT,
+    garanzia_intervento TEXT,
+    versione VARCHAR(30) DEFAULT '1.0',
+    lingua VARCHAR(10) DEFAULT 'it',
+    valuta VARCHAR(10) DEFAULT 'EUR',
+    aggiornato_il TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS attivita_tecnico (
     id BIGSERIAL PRIMARY KEY,
     codice VARCHAR(50) UNIQUE NOT NULL,
@@ -110,6 +132,16 @@ CREATE TABLE IF NOT EXISTS attivita_tecnico (
     assegnata_a VARCHAR(255) NOT NULL,
     scadenza DATE
 );
+
+ALTER TABLE attivita_tecnico
+    ADD COLUMN IF NOT EXISTS tecnico_id BIGINT REFERENCES utenti(id),
+    ADD COLUMN IF NOT EXISTS descrizione TEXT,
+    ADD COLUMN IF NOT EXISTS created_by_commercial_id BIGINT REFERENCES utenti(id),
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
+ALTER TABLE preventivi_documenti
+    ADD COLUMN IF NOT EXISTS template_documento VARCHAR(120) DEFAULT 'Modello Preventivo Standard',
+    ADD COLUMN IF NOT EXISTS clausole_extra TEXT;
 
 CREATE TABLE IF NOT EXISTS notifiche_sistema (
     id BIGSERIAL PRIMARY KEY,
@@ -158,6 +190,9 @@ CREATE TABLE IF NOT EXISTS rilievi (
     inviato_il TIMESTAMPTZ
 );
 
+ALTER TABLE preventivi_header
+    ADD COLUMN IF NOT EXISTS rilievo_id BIGINT REFERENCES rilievi(id);
+
 CREATE TABLE IF NOT EXISTS rilievi_righe (
     id BIGSERIAL PRIMARY KEY,
     rilievo_id BIGINT REFERENCES rilievi(id) ON DELETE CASCADE,
@@ -175,6 +210,20 @@ CREATE TABLE IF NOT EXISTS rilievi_righe (
 
 ALTER TABLE rilievi_righe
     ADD COLUMN IF NOT EXISTS descrizione_tecnica_originale TEXT;
+
+CREATE TABLE IF NOT EXISTS richieste_integrazione (
+    id BIGSERIAL PRIMARY KEY,
+    preventivo_id BIGINT NOT NULL REFERENCES preventivi_header(id) ON DELETE CASCADE,
+    rilievo_id BIGINT NOT NULL REFERENCES rilievi(id) ON DELETE CASCADE,
+    tecnico_id BIGINT NOT NULL REFERENCES utenti(id),
+    richiesta_da BIGINT REFERENCES utenti(id),
+    motivo VARCHAR(255) NOT NULL,
+    note TEXT,
+    campi_da_correggere TEXT,
+    stato VARCHAR(30) NOT NULL DEFAULT 'OPEN',
+    creata_il TIMESTAMPTZ DEFAULT NOW(),
+    aggiornata_il TIMESTAMPTZ DEFAULT NOW()
+);
 
 CREATE TABLE IF NOT EXISTS trascrizioni_audio (
     id BIGSERIAL PRIMARY KEY,

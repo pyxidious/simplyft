@@ -42,12 +42,34 @@ Poi avvia l'ambiente:
 
 Gli script creano automaticamente `.env` copiandolo da `.env.example` quando il file non esiste, poi eseguono Docker Compose in modalita' detached.
 
+Per provare il sito da altri dispositivi tramite ngrok:
+
+```bash
+./scripts/start-ngrok.sh
+```
+
+Lo script avvia l'ambiente, apre in background un tunnel verso il reverse proxy locale `http://localhost:8080` e stampa l'URL HTTPS pubblico da usare sull'altro dispositivo.
+
+Per fermare il tunnel ngrok:
+
+```bash
+./scripts/stop-ngrok.sh
+```
+
+Per fermare sia ngrok sia l'ambiente Docker Compose:
+
+```bash
+./scripts/stop-ngrok.sh --environment
+```
+
 ## Opzioni Degli Script
 
 - Windows: `-NoBuild` avvia senza ricostruire le immagini.
 - Windows: `-FollowLogs` mostra i log dopo l'avvio.
 - Linux/macOS: `--no-build` avvia senza ricostruire le immagini.
 - Linux/macOS: `--follow-logs` mostra i log dopo l'avvio.
+- ngrok start: `--port PORT` espone una porta locale diversa, `--no-start` salta l'avvio di Docker Compose, `--no-build` avvia senza ricostruire le immagini.
+- ngrok stop: `--environment` ferma anche Docker Compose, `--volumes` rimuove anche i volumi Docker Compose.
 
 Esempi:
 

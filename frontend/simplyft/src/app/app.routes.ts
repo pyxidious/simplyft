@@ -7,11 +7,13 @@ import { PlantDetailComponent } from './features/field/plant-detail/plant-detail
 import { PlantsListComponent } from './features/field/plants-list/plants-list.component';
 import { NewSurveyComponent } from './features/field/new-survey/new-survey.component';
 import { InspectionsListComponent } from './features/field/inspections-list/inspections-list.component';
+import { IntegrationsListComponent } from './features/field/integrations-list/integrations-list.component';
 import { ReviewConfirmComponent } from './features/field/review-confirm/review-confirm.component';
 import { OfficeDashboardComponent } from './features/office/office-dashboard/office-dashboard.component';
 import { QuotesListComponent } from './features/office/quotes-list/quotes-list.component';
 import { QuoteDetailComponent } from './features/office/quote-detail/quote-detail.component';
 import { PipelineComponent } from './features/office/pipeline/pipeline.component';
+import { AssignmentsComponent } from './features/office/assignments/assignments.component';
 import { SettingsComponent } from './features/settings/settings.component';
 import { authGuard } from './core/services/auth.guard';
 
@@ -33,6 +35,7 @@ export const routes: Routes = [
       { path: 'rilievi/bozze', component: InspectionsListComponent },
       { path: 'rilievi/bozze/:id', component: NewSurveyComponent },
       { path: 'rilievi/:id', component: NewSurveyComponent },
+      { path: 'integrazioni', component: IntegrationsListComponent },
       { path: 'profilo', component: SettingsComponent },
       { path: 'verifica-conferma', component: ReviewConfirmComponent }
     ]
@@ -49,7 +52,8 @@ export const routes: Routes = [
       { path: 'dashboard', component: OfficeDashboardComponent },
       { path: 'preventivi', component: QuotesListComponent },
       { path: 'preventivo/:id', component: QuoteDetailComponent },
-      { path: 'pipeline', component: PipelineComponent }
+      { path: 'pipeline', component: PipelineComponent },
+      { path: 'assegnazioni', component: AssignmentsComponent }
     ]
   },
   { path: 'office', redirectTo: 'commerciale/dashboard' },
