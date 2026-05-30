@@ -1,33 +1,49 @@
-<section class="commercial-page">
-  <div class="section-head">
-    <div>
-      <p>Pipeline</p>
-      <h2>Pipeline commerciale</h2>
+<section class="commercial-page pipeline-horizontal">
+  <header class="pipeline-header">
+    <div class="header-copy">
+      <span class="eyebrow">Pipeline commerciale</span>
+      <h1>Avanzamento pratiche dal rilievo alla chiusura</h1>
+      <p>Segui il flusso commerciale per fase, seleziona uno step e lavora sulle pratiche rilevanti.</p>
     </div>
-    <div class="head-metrics" aria-label="Sintesi pipeline">
-      <span><b>{{ filteredQuotes().length }}</b> pratiche</span>
-      <span><b>{{ openCount() }}</b> aperte</span>
-      <span><b>{{ totalValue() | currency:'EUR':'symbol':'1.0-0' }}</b> valore</span>
+
+    <div class="metrics-grid">
+      <article class="metric-card">
+        <span>{{ filteredQuotes().length }}</span>
+        <small>Pratiche totali</small>
+      </article>
+      <article class="metric-card">
+        <span>{{ openCount() }}</span>
+        <small>Aperte</small>
+      </article>
+      <article class="metric-card value">
+        <span>{{ formatCurrency(totalValue()) }}</span>
+        <small>Valore totale</small>
+      </article>
+      <article class="metric-card">
+        <span>{{ formatCurrency(averageValue()) }}</span>
+        <small>Valore medio</small>
+      </article>
     </div>
-  </div>
+  </header>
 
   <div class="state-message" *ngIf="pipeline.quotes.loading()">Caricamento pipeline...</div>
   <div class="state-message error" *ngIf="pipeline.quotes.error()">{{ pipeline.quotes.error() }}</div>
 
-  <section class="pipeline-panel">
-    <div class="toolbar">
-      <label class="search-field">
-        <span>Cerca</span>
-        <input
-          [ngModel]="query()"
-          (ngModelChange)="query.set($event)"
-          placeholder="Cliente, impianto, assegnatario, stato..."
-        />
-      </label>
+  <section class="pipeline-toolbar">
+    <label class="search-box">
+      <fa-icon [icon]="icons.search" />
+      <input
+        [ngModel]="query()"
+        (ngModelChange)="setQuery($event)"
+        placeholder="Cerca cliente, impianto, assegnatario, stato..."
+        aria-label="Cerca nella pipeline"
+      />
+    </label>
 
+    <div class="filters-card">
       <label>
-        <span>Priorità</span>
-        <select [ngModel]="priority()" (ngModelChange)="priority.set($event)">
+        <span><fa-icon [icon]="icons.filter" /> Priorità</span>
+        <select [ngModel]="priority()" (ngModelChange)="setPriority($event)">
           <option value="all">Tutte</option>
           <option value="Alta">Alta</option>
           <option value="Media">Media</option>
@@ -36,71 +52,114 @@
       </label>
 
       <label>
-        <span>Assegnatario</span>
-        <select [ngModel]="assignee()" (ngModelChange)="assignee.set($event)">
+        <span><fa-icon [icon]="icons.user" /> Assegnatario</span>
+        <select [ngModel]="assignee()" (ngModelChange)="setAssignee($event)">
           <option value="all">Tutti</option>
-          <option *ngFor="let option of assigneeOptions()" [value]="option">{{ option }}</option>
+          <option *ngFor="let option of assigneeOptions(); trackBy: trackByFilterOption" [value]="option">{{ option }}</option>
         </select>
       </label>
 
-      <button class="btn light" type="button" (click)="clearFilters()">Reset</button>
+      <label>
+        <span><fa-icon [icon]="icons.filter" /> Fase</span>
+        <select [ngModel]="stageFilter()" (ngModelChange)="setStageFilter($event)">
+          <option value="all">Tutte le fasi</option>
+          <option *ngFor="let step of flowSteps(); trackBy: trackByStage" [value]="step.status">{{ step.title }}</option>
+        </select>
+      </label>
+
+      <button class="reset-button" type="button" (click)="clearFilters()" [class.active]="hasFilters()">
+        <fa-icon [icon]="icons.reset" />
+        <span class="button-label">Reset</span>
+      </button>
     </div>
 
-    <div class="kanban">
-      <section class="kanban-column" *ngFor="let column of grouped()">
-        <header class="column-head">
+    <div class="result-count">
+      <b>{{ filteredQuotes().length }}</b>
+      <span>risultati filtrati</span>
+    </div>
+  </section>
+
+  <section class="pipeline-flow-panel">
+    <div class="pipeline-flow" role="list" aria-label="Fasi pipeline commerciale">
+      <ng-container *ngFor="let step of flowSteps(); let last = last; let i = index; trackBy: trackByStage">
+        <button
+          class="pipeline-step"
+          type="button"
+          role="listitem"
+          [class.selected-stage]="selectedStage().status === step.status"
+          [style.--accent]="step.accent || '#2563eb'"
+          [style.--step-index]="i"
+          (click)="selectStage(step.status)"
+        >
+          <div class="step-top">
+            <span class="step-icon"><fa-icon [icon]="stageIcon(step.status)" /></span>
+            <span class="step-count">{{ stageCount(step.status) }}</span>
+          </div>
+
+          <div class="step-copy">
+            <h2>{{ step.title || 'Fase pipeline' }}</h2>
+            <p>{{ step.description || 'Fase pipeline commerciale.' }}</p>
+          </div>
+
+          <div class="step-metrics">
+            <strong>{{ formatCurrency(stageTotal(step.status)) }}</strong>
+            <span *ngIf="step.highPriority">{{ step.highPriority }} alta priorità</span>
+            <span *ngIf="!step.highPriority">Priorità sotto controllo</span>
+          </div>
+        </button>
+
+        <div class="pipeline-arrow" *ngIf="!last" aria-hidden="true" [style.--accent]="step.accent || '#2563eb'">
+          <fa-icon [icon]="icons.chevron" />
+        </div>
+      </ng-container>
+    </div>
+  </section>
+
+  <section class="stage-details" [style.--accent]="selectedStage().accent || '#2563eb'">
+    <header class="details-head">
+      <div>
+        <span>Pratiche della fase selezionata</span>
+        <h2>{{ selectedStage().title || 'Fase pipeline' }}</h2>
+        <p>{{ selectedStage().description || 'Fase pipeline commerciale.' }}</p>
+      </div>
+      <div class="details-summary">
+        <strong>{{ selectedStageItems().length }}</strong>
+        <small>{{ formatCurrency(stageTotal(selectedStage().status)) }}</small>
+      </div>
+    </header>
+
+    <div class="practice-grid" [class.is-empty]="!selectedStageItems().length">
+      <article class="practice-card" *ngFor="let quote of selectedStageItems(); let i = index; trackBy: trackByPractice" [style.--card-index]="i">
+        <div class="practice-main">
           <div>
-            <h3>{{ column.title }}</h3>
-            <small>{{ column.totalValue | currency:'EUR':'symbol':'1.0-0' }}</small>
+            <h3>{{ quoteCustomer(quote) }}</h3>
+            <p>{{ quotePlant(quote) }}</p>
           </div>
-          <span>{{ column.quotes.length }}</span>
-        </header>
+          <strong>{{ formatQuoteValue(quote) }}</strong>
+        </div>
 
-        <article class="pipeline-card" *ngFor="let quote of column.quotes">
-          <div class="card-topline">
-            <app-status-badge
-              [label]="quote.priority"
-              [tone]="quote.priority === 'Alta' ? 'danger' : quote.priority === 'Media' ? 'warning' : 'info'"
-            />
-            <span>{{ quote.lastUpdated | date:'dd/MM/yyyy' }}</span>
-          </div>
+        <div class="badge-row">
+          <app-status-badge [label]="quotePriority(quote)" [tone]="priorityTone(quote.priority)" />
+          <app-status-badge [label]="quoteStatus(quote)" [tone]="validationTone(quote)" />
+        </div>
 
-          <h4>{{ quote.customer }}</h4>
-          <p>Impianto {{ quote.plantCode }}</p>
+        <div class="practice-meta">
+          <span><fa-icon [icon]="icons.user" /> {{ quoteAssignee(quote) }}</span>
+          <span><fa-icon [icon]="icons.money" /> {{ quoteValidation(quote) }}</span>
+          <span><fa-icon [icon]="icons.clock" /> {{ lastActivity(quote) }}</span>
+        </div>
 
-          <dl>
-            <div>
-              <dt>Stato</dt>
-              <dd>{{ quote.statusLabel }}</dd>
-            </div>
-            <div>
-              <dt>Valore</dt>
-              <dd>{{ quote.hasQuote ? (quote.estimatedValue | currency:'EUR':'symbol':'1.0-0') : 'Da stimare' }}</dd>
-            </div>
-            <div>
-              <dt>Assegnatario</dt>
-              <dd>{{ quote.assignee || quote.technicianName || 'Non assegnato' }}</dd>
-            </div>
-            <div>
-              <dt>Ultima attività</dt>
-              <dd>{{ quote.lastUpdated | date:'dd/MM/yyyy HH:mm' }}</dd>
-            </div>
-          </dl>
-
-          <div class="card-footer">
-            <app-status-badge [label]="quote.technicalValidation" [tone]="validationTone(quote)" />
-            <button class="open-btn" type="button" (click)="open(quote)" [disabled]="pipeline.quotes.actionLoading() === quote.inspectionId">
-              {{ quote.hasQuote ? 'Apri' : 'Crea' }}
-            </button>
-          </div>
-        </article>
-
-        <p class="column-empty" *ngIf="!pipeline.quotes.loading() && !column.quotes.length">Nessuna pratica in questa fase.</p>
-      </section>
+        <button class="open-button" type="button" (click)="open(quote)" [disabled]="pipeline.quotes.actionLoading() === quote.inspectionId">
+          <span class="button-label">{{ actionLabel(quote) }}</span>
+          <fa-icon [icon]="icons.arrow" />
+        </button>
+      </article>
     </div>
 
-    <p class="empty-state" *ngIf="!pipeline.quotes.loading() && !filteredQuotes().length">
-      Nessuna pratica corrisponde ai filtri selezionati.
-    </p>
+    <div class="empty-stage" *ngIf="!selectedStageItems().length">
+      <fa-icon [icon]="stageIcon(selectedStage().status)" />
+      <h3>Nessuna pratica in questa fase</h3>
+      <p>Seleziona un altro step o modifica i filtri per visualizzare altre pratiche.</p>
+    </div>
   </section>
 </section>

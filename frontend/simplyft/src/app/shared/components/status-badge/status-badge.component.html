@@ -1,0 +1,10 @@
+<span
+  class="status-badge"
+  [class.success]="tone === 'success'"
+  [class.warning]="tone === 'warning'"
+  [class.danger]="tone === 'danger'"
+  [class.info]="tone === 'info'"
+  [class.neutral]="tone === 'neutral'"
+>
+  {{ label || 'Stato non definito' }}
+</span>

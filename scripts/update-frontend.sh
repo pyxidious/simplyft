@@ -44,8 +44,8 @@ if [ ! -f ".env" ]; then
   echo "Created .env from .env.example. Review secrets and ports if needed."
 fi
 
-echo "Building Docker Compose service: frontend"
-docker compose build frontend
+echo "Building frontend image from ./frontend/Dockerfile..."
+docker build -t simplyft-frontend -f frontend/Dockerfile frontend
 
 echo "Recreating only Docker Compose service: frontend"
 docker compose up -d --no-deps frontend

@@ -22,10 +22,10 @@ if (-not (Test-Path ".env")) {
     Write-Host "Created .env from .env.example. Review secrets and ports if needed."
 }
 
-Write-Host "Building Docker Compose service: frontend"
-docker compose build frontend
+Write-Host "Building frontend image from ./frontend/Dockerfile..."
+docker build -t simplyft-frontend -f frontend/Dockerfile frontend
 if ($LASTEXITCODE -ne 0) {
-    throw "Docker Compose build failed with exit code $LASTEXITCODE."
+    throw "Docker build failed with exit code $LASTEXITCODE."
 }
 
 Write-Host "Recreating only Docker Compose service: frontend"

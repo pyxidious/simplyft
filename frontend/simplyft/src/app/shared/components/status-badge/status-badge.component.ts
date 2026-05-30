@@ -4,7 +4,7 @@ import { Component, Input } from '@angular/core';
   selector: 'app-status-badge',
   standalone: true,
   styleUrl: './status-badge.component.css',
-  template: `<span class="status-badge" [class]="tone">{{ label }}</span>`
+  templateUrl: './status-badge.component.html'
 })
 export class StatusBadgeComponent {
   @Input({ required: true }) label = '';

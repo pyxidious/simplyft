@@ -1,14 +1,31 @@
+.status-badge,
+:host {
+  max-width: 100%;
+}
+
+:host {
+  display: inline-flex;
+  min-width: 0;
+}
+
 .status-badge {
   min-height: 28px;
   padding: 0 10px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: 6px;
+  max-width: 100%;
   border-radius: 999px;
   background: #f1f5f9;
   color: #475569;
   font-size: 0.74rem;
   font-weight: 900;
+  line-height: 1.2;
   white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  box-sizing: border-box;
 }
 
 .success {
@@ -29,4 +46,9 @@
 .info {
   background: #eff6ff;
   color: #2563eb;
+}
+
+.neutral {
+  background: #f1f5f9;
+  color: #475569;
 }
