@@ -1,0 +1,249 @@
+<section class="commercial-page">
+  <div class="section-head">
+    <div>
+      <p>Commerciale</p>
+      <h2>Anagrafica</h2>
+    </div>
+    <div class="head-actions">
+      <span>Clienti e impianti in un archivio unico, separato dalle assegnazioni.</span>
+      <a class="btn ghost" routerLink="/commerciale/assegnazioni">Vai alle assegnazioni</a>
+    </div>
+  </div>
+
+  <div class="state-message" *ngIf="assignments.loading()">Caricamento anagrafica...</div>
+  <div class="state-message error" *ngIf="assignments.error()">{{ assignments.error() }}</div>
+
+  <section class="registry-panel">
+    <div class="registry-panel-head">
+      <div class="tabs-bar" role="tablist" aria-label="Sezioni anagrafica">
+        <button
+          type="button"
+          class="tab-button"
+          [class.active]="activeTab() === 'customers'"
+          (click)="setTab('customers')"
+        >
+          Clienti
+          <span>{{ customerCount() }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="tab-button"
+          [class.active]="activeTab() === 'plants'"
+          (click)="setTab('plants')"
+        >
+          Impianti
+          <span>{{ plantCount() }}</span>
+        </button>
+      </div>
+
+      <button class="btn primary add-button" type="button" (click)="openCreateModal()">
+        {{ activeTab() === 'customers' ? 'Nuovo cliente' : 'Nuovo impianto' }}
+      </button>
+    </div>
+
+    <div class="tab-toolbar">
+      <div class="toolbar-filters">
+        <label class="search-field">
+          <span>Cerca</span>
+          <input
+            [ngModel]="search()"
+            (ngModelChange)="setSearch($event)"
+            name="registrySearch"
+            [placeholder]="activeTab() === 'customers' ? 'Cerca cliente, città, email...' : 'Cerca impianto, cliente, indirizzo...'"
+          />
+        </label>
+
+        <label class="customer-filter" *ngIf="activeTab() === 'plants'">
+          <span>Cliente</span>
+          <select [ngModel]="selectedCustomerId()" (ngModelChange)="setSelectedCustomer($event)" name="selectedCustomer">
+            <option value="">Tutti i clienti</option>
+            <option *ngFor="let customer of assignments.customers()" [value]="customer.id">{{ customer.name }}</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <ng-container *ngIf="activeTab() === 'customers'">
+      <div class="list-head">
+        <div>
+          <h3>Lista clienti</h3>
+          <p>{{ filteredCustomers().length }} risultati visualizzati</p>
+        </div>
+      </div>
+
+      <div class="table-list">
+        <article class="registry-row header-row">
+          <span>Cliente</span>
+          <span>Città</span>
+          <span>Contatti</span>
+          <span>Azioni</span>
+        </article>
+
+        <article class="registry-row" *ngFor="let customer of filteredCustomers()">
+          <div class="main-cell">
+            <b>{{ customer.name }}</b>
+          </div>
+          <div>{{ customer.city || '—' }}</div>
+          <div class="muted-cell">
+            <span>{{ customer.email || 'Email non indicata' }}</span>
+            <small *ngIf="customer.phone">{{ customer.phone }}</small>
+          </div>
+          <div class="row-actions">
+            <button class="btn light" type="button" (click)="startCustomerEdit(customer)">Modifica</button>
+            <button class="btn danger" type="button" (click)="deleteCustomer(customer.id)">Elimina</button>
+          </div>
+        </article>
+
+        <p class="empty-state" *ngIf="!assignments.loading() && !filteredCustomers().length">Nessun cliente trovato.</p>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="activeTab() === 'plants'">
+      <div class="list-head">
+        <div>
+          <h3>Lista impianti</h3>
+          <p>{{ filteredPlants().length }} risultati visualizzati</p>
+        </div>
+      </div>
+
+      <div class="table-list plants-table">
+        <article class="registry-row header-row">
+          <span>Impianto</span>
+          <span>Cliente</span>
+          <span>Indirizzo</span>
+          <span>Tipologia</span>
+          <span>Azioni</span>
+        </article>
+
+        <article class="registry-row" *ngFor="let plant of filteredPlants()">
+          <div class="main-cell">
+            <b>{{ plant.code }}</b>
+            <small *ngIf="plant.serial && plant.serial !== plant.code">Seriale {{ plant.serial }}</small>
+          </div>
+          <div>{{ plant.customerName }}</div>
+          <div class="muted-cell">
+            <span>{{ plant.address || 'Indirizzo non indicato' }}</span>
+            <small *ngIf="plant.city">{{ plant.city }}</small>
+          </div>
+          <div>{{ plant.type || '—' }}</div>
+          <div class="row-actions">
+            <button class="btn light" type="button" (click)="startPlantEdit(plant)">Modifica</button>
+            <button class="btn danger" type="button" (click)="deletePlant(plant.id)">Elimina</button>
+          </div>
+        </article>
+
+        <p class="empty-state" *ngIf="!assignments.loading() && !filteredPlants().length">Nessun impianto trovato.</p>
+      </div>
+    </ng-container>
+  </section>
+
+  <div class="modal-backdrop" *ngIf="activeModal()" (click)="closeModal()">
+    <section class="modal-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <p>Anagrafica</p>
+          <h3 *ngIf="activeModal() === 'createCustomer'">Nuovo cliente</h3>
+          <h3 *ngIf="activeModal() === 'editCustomer'">Modifica cliente</h3>
+          <h3 *ngIf="activeModal() === 'createPlant'">Nuovo impianto</h3>
+          <h3 *ngIf="activeModal() === 'editPlant'">Modifica impianto</h3>
+        </div>
+        <button class="icon-button" type="button" aria-label="Chiudi modale" (click)="closeModal()">×</button>
+      </div>
+
+      <form class="modal-form" *ngIf="activeModal() === 'createCustomer'" (ngSubmit)="createCustomer()">
+        <label>Ragione sociale
+          <input [(ngModel)]="newCustomer.name" name="customerName" required placeholder="Es. Condominio Aurora" />
+        </label>
+        <label>Città
+          <input [(ngModel)]="newCustomer.city" name="customerCity" placeholder="Roma" />
+        </label>
+        <label>Email
+          <input type="email" [(ngModel)]="newCustomer.email" name="customerEmail" placeholder="amministrazione@cliente.it" />
+        </label>
+        <label>Telefono
+          <input [(ngModel)]="newCustomer.phone" name="customerPhone" placeholder="+39 ..." />
+        </label>
+        <div class="form-actions modal-actions">
+          <button class="btn primary" type="submit">Salva cliente</button>
+          <button class="btn light" type="button" (click)="closeModal()">Annulla</button>
+        </div>
+      </form>
+
+      <form class="modal-form" *ngIf="activeModal() === 'editCustomer'" (ngSubmit)="saveCustomer(editingCustomerId)">
+        <label>Ragione sociale
+          <input [(ngModel)]="customerEdit.name" name="editCustomerName" required placeholder="Ragione sociale" />
+        </label>
+        <label>Città
+          <input [(ngModel)]="customerEdit.city" name="editCustomerCity" placeholder="Città" />
+        </label>
+        <label>Email
+          <input type="email" [(ngModel)]="customerEdit.email" name="editCustomerEmail" placeholder="Email" />
+        </label>
+        <label>Telefono
+          <input [(ngModel)]="customerEdit.phone" name="editCustomerPhone" placeholder="Telefono" />
+        </label>
+        <div class="form-actions modal-actions">
+          <button class="btn primary" type="submit">Salva modifiche</button>
+          <button class="btn light" type="button" (click)="closeModal()">Annulla</button>
+        </div>
+      </form>
+
+      <form class="modal-form" *ngIf="activeModal() === 'createPlant'" (ngSubmit)="createPlant()">
+        <label>Cliente
+          <select [(ngModel)]="newPlant.customerId" name="plantCustomerId" required>
+            <option value="">Seleziona cliente</option>
+            <option *ngFor="let customer of assignments.customers()" [value]="customer.id">{{ customer.name }}</option>
+          </select>
+        </label>
+        <label>Codice / matricola
+          <input [(ngModel)]="newPlant.code" name="plantCode" required placeholder="Es. RM-0421" />
+        </label>
+        <label>Seriale
+          <input [(ngModel)]="newPlant.serial" name="plantSerial" placeholder="Se vuoto usa il codice" />
+        </label>
+        <label>Indirizzo
+          <input [(ngModel)]="newPlant.address" name="plantAddress" placeholder="Via Roma 10" />
+        </label>
+        <label>Città
+          <input [(ngModel)]="newPlant.city" name="plantCity" placeholder="Roma" />
+        </label>
+        <label>Tipologia
+          <input [(ngModel)]="newPlant.type" name="plantType" placeholder="Ascensore elettrico" />
+        </label>
+        <div class="form-actions modal-actions">
+          <button class="btn primary" type="submit">Salva impianto</button>
+          <button class="btn light" type="button" (click)="closeModal()">Annulla</button>
+        </div>
+      </form>
+
+      <form class="modal-form" *ngIf="activeModal() === 'editPlant'" (ngSubmit)="savePlant(editingPlantId)">
+        <label>Cliente
+          <select [(ngModel)]="plantEdit.customerId" name="editPlantCustomerId" required>
+            <option value="">Seleziona cliente</option>
+            <option *ngFor="let customer of assignments.customers()" [value]="customer.id">{{ customer.name }}</option>
+          </select>
+        </label>
+        <label>Codice / matricola
+          <input [(ngModel)]="plantEdit.code" name="editPlantCode" required placeholder="Codice / matricola" />
+        </label>
+        <label>Seriale
+          <input [(ngModel)]="plantEdit.serial" name="editPlantSerial" placeholder="Seriale" />
+        </label>
+        <label>Indirizzo
+          <input [(ngModel)]="plantEdit.address" name="editPlantAddress" placeholder="Indirizzo" />
+        </label>
+        <label>Città
+          <input [(ngModel)]="plantEdit.city" name="editPlantCity" placeholder="Città" />
+        </label>
+        <label>Tipologia
+          <input [(ngModel)]="plantEdit.type" name="editPlantType" placeholder="Tipologia" />
+        </label>
+        <div class="form-actions modal-actions">
+          <button class="btn primary" type="submit">Salva modifiche</button>
+          <button class="btn light" type="button" (click)="closeModal()">Annulla</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</section>

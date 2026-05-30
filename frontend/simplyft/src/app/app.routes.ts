@@ -14,6 +14,7 @@ import { QuotesListComponent } from './features/office/quotes-list/quotes-list.c
 import { QuoteDetailComponent } from './features/office/quote-detail/quote-detail.component';
 import { PipelineComponent } from './features/office/pipeline/pipeline.component';
 import { AssignmentsComponent } from './features/office/assignments/assignments.component';
+import { RegistryComponent } from './features/office/registry/registry.component';
 import { SettingsComponent } from './features/settings/settings.component';
 import { authGuard } from './core/services/auth.guard';
 
@@ -53,7 +54,8 @@ export const routes: Routes = [
       { path: 'preventivi', component: QuotesListComponent },
       { path: 'preventivo/:id', component: QuoteDetailComponent },
       { path: 'pipeline', component: PipelineComponent },
-      { path: 'assegnazioni', component: AssignmentsComponent }
+      { path: 'assegnazioni', component: AssignmentsComponent },
+      { path: 'anagrafica', component: RegistryComponent }
     ]
   },
   { path: 'office', redirectTo: 'commerciale/dashboard' },
@@ -61,6 +63,7 @@ export const routes: Routes = [
   { path: 'office/preventivi', redirectTo: 'commerciale/preventivi' },
   { path: 'office/preventivo/:id', redirectTo: 'commerciale/preventivo/:id' },
   { path: 'office/pipeline', redirectTo: 'commerciale/pipeline' },
+  { path: 'office/anagrafica', redirectTo: 'commerciale/anagrafica' },
   { path: 'settings', component: SettingsComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: 'login' }
 ];

@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CommercialAssignment } from '../../../core/models/simplyft.models';
 import { AssegnazioniCommercialeService } from '../../../core/services/assegnazioni-commerciale.service';
 
 @Component({
@@ -11,63 +12,93 @@ import { AssegnazioniCommercialeService } from '../../../core/services/assegnazi
   styleUrl: './assignments.component.css'
 })
 export class AssignmentsComponent implements OnInit {
-  newCustomer = {
-    name: '',
-    city: '',
-    email: '',
-    phone: ''
-  };
+  query = signal('');
+  status = signal('all');
+  priority = signal('all');
+  selectedAssignment = signal<CommercialAssignment | undefined>(undefined);
 
-  newPlant = {
-    customerId: '',
-    serial: '',
-    address: '',
-    city: '',
-    type: ''
-  };
+  statusOptions = computed(() => this.uniqueValues('status'));
+  priorityOptions = computed(() => this.uniqueValues('priority'));
+  filteredAssignments = computed(() => {
+    const query = this.query().trim().toLowerCase();
+    const status = this.status();
+    const priority = this.priority();
 
-  form = {
-    technicianId: '',
-    customerId: '',
-    plantId: '',
-    title: '',
-    description: '',
-    priority: 'Media',
-    dueDate: '',
-    status: 'assegnata'
-  };
+    return this.assignments.assignments().filter((assignment) => {
+      const matchesQuery = !query || [
+        assignment.code,
+        assignment.title,
+        assignment.description,
+        assignment.customerName,
+        assignment.plantCode,
+        assignment.address,
+        assignment.technicianName
+      ].join(' ').toLowerCase().includes(query);
+      const matchesStatus = status === 'all' || assignment.status === status;
+      const matchesPriority = priority === 'all' || assignment.priority === priority;
+      return matchesQuery && matchesStatus && matchesPriority;
+    });
+  });
+
+  activeCount = computed(() => this.assignments.assignments().filter((item) => item.status !== 'completata').length);
+  overdueCount = computed(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return this.assignments.assignments().filter((item) => {
+      if (!item.dueDate || item.status === 'completata') {
+        return false;
+      }
+      return new Date(item.dueDate) < today;
+    }).length;
+  });
 
   constructor(public assignments: AssegnazioniCommercialeService) {}
 
   ngOnInit(): void {
-    this.assignments.load();
+    this.assignments.loadAssignmentsOnly();
   }
 
-  customerChanged(customerId: string): void {
-    this.form.customerId = customerId;
-    this.form.plantId = '';
-    this.assignments.loadPlants(customerId);
+  openDetail(assignment: CommercialAssignment): void {
+    this.selectedAssignment.set(assignment);
   }
 
-  submit(): void {
-    this.assignments.create(this.form);
+  closeDetail(): void {
+    this.selectedAssignment.set(undefined);
   }
 
-  createCustomer(): void {
-    if (!this.newCustomer.name.trim()) {
-      this.assignments.error.set('Nome cliente obbligatorio.');
-      return;
+  clearFilters(): void {
+    this.query.set('');
+    this.status.set('all');
+    this.priority.set('all');
+  }
+
+  statusLabel(status: string): string {
+    return status.replace(/_/g, ' ');
+  }
+
+  statusTone(status: string): 'neutral' | 'success' | 'warning' {
+    if (status === 'completata') {
+      return 'success';
     }
-    this.assignments.createCustomer(this.newCustomer);
-    this.newCustomer = { name: '', city: '', email: '', phone: '' };
+    if (status === 'in_corso') {
+      return 'warning';
+    }
+    return 'neutral';
   }
 
-  createPlant(): void {
-    if (!this.newPlant.customerId) {
-      this.assignments.error.set('Seleziona un cliente per il nuovo impianto.');
-      return;
+  dueDateTone(assignment: CommercialAssignment): 'neutral' | 'danger' {
+    if (!assignment.dueDate || assignment.status === 'completata') {
+      return 'neutral';
     }
-    this.assignments.createPlant(this.newPlant);
-    this.newPlant = { customerId: '', serial: '', address: '', city: '', type: '' };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return new Date(assignment.dueDate) < today ? 'danger' : 'neutral';
+  }
+
+  private uniqueValues(field: 'status' | 'priority'): string[] {
+    return [...new Set(this.assignments.assignments()
+      .map((assignment) => assignment[field])
+      .filter(Boolean))]
+      .sort((left, right) => left.localeCompare(right));
   }
 }

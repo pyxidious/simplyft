@@ -2,99 +2,153 @@
   <div class="section-head">
     <div>
       <p>Commerciale</p>
-      <h2>Assegnazioni</h2>
+      <h2>Attività assegnate</h2>
     </div>
-    <span>Attivita reali assegnate ai tecnici</span>
+    <div class="head-metrics" aria-label="Sintesi attività">
+      <span><b>{{ assignments.assignments().length }}</b> totali</span>
+      <span><b>{{ activeCount() }}</b> aperte</span>
+      <span class="danger" *ngIf="overdueCount()"><b>{{ overdueCount() }}</b> scadute</span>
+    </div>
   </div>
 
-  <div class="state-message" *ngIf="assignments.loading()">Caricamento dati...</div>
+  <div class="state-message" *ngIf="assignments.loading()">Caricamento attività...</div>
   <div class="state-message error" *ngIf="assignments.error()">{{ assignments.error() }}</div>
 
-  <section class="panel">
-    <div class="panel-title">
+  <section class="assignments-panel">
+    <div class="toolbar">
+      <label class="search-field">
+        <span>Cerca</span>
+        <input
+          [ngModel]="query()"
+          (ngModelChange)="query.set($event)"
+          placeholder="Cliente, impianto, tecnico, codice o titolo"
+        />
+      </label>
+
+      <label>
+        <span>Stato</span>
+        <select [ngModel]="status()" (ngModelChange)="status.set($event)">
+          <option value="all">Tutti</option>
+          <option *ngFor="let option of statusOptions()" [value]="option">{{ statusLabel(option) }}</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Priorità</span>
+        <select [ngModel]="priority()" (ngModelChange)="priority.set($event)">
+          <option value="all">Tutte</option>
+          <option *ngFor="let option of priorityOptions()" [value]="option">{{ option }}</option>
+        </select>
+      </label>
+
+      <button class="btn light" type="button" (click)="clearFilters()">Reset</button>
+    </div>
+
+    <div class="list-head">
       <div>
-        <h2>Anagrafica clienti e impianti</h2>
-        <p>Inserisci nuovi dati da usare subito nelle assegnazioni tecniche.</p>
+        <h3>Elenco attività</h3>
+        <p>{{ filteredAssignments().length }} risultati visualizzati</p>
       </div>
     </div>
 
-    <div class="registry-grid">
-      <form class="registry-form" (ngSubmit)="createCustomer()">
-        <h3>Nuovo cliente</h3>
-        <label>Ragione sociale <input [(ngModel)]="newCustomer.name" name="customerName" required /></label>
-        <label>Citta <input [(ngModel)]="newCustomer.city" name="customerCity" /></label>
-        <label>Email <input type="email" [(ngModel)]="newCustomer.email" name="customerEmail" /></label>
-        <label>Telefono <input [(ngModel)]="newCustomer.phone" name="customerPhone" /></label>
-        <button class="btn secondary" type="submit">Salva cliente</button>
-      </form>
-
-      <form class="registry-form" (ngSubmit)="createPlant()">
-        <h3>Nuovo impianto</h3>
-        <label>Cliente
-          <select [(ngModel)]="newPlant.customerId" name="plantCustomerId" required>
-            <option value="">Seleziona cliente</option>
-            <option *ngFor="let customer of assignments.customers()" [value]="customer.id">{{ customer.name }}</option>
-          </select>
-        </label>
-        <label>Matricola <input [(ngModel)]="newPlant.serial" name="plantSerial" /></label>
-        <label>Indirizzo <input [(ngModel)]="newPlant.address" name="plantAddress" /></label>
-        <label>Citta <input [(ngModel)]="newPlant.city" name="plantCity" /></label>
-        <label>Tipologia <input [(ngModel)]="newPlant.type" name="plantType" /></label>
-        <button class="btn secondary" type="submit">Salva impianto</button>
-      </form>
-    </div>
-  </section>
-
-  <section class="panel">
-    <h2>Nuova assegnazione</h2>
-    <form class="assignment-form" (ngSubmit)="submit()">
-      <label>Tecnico
-        <select [(ngModel)]="form.technicianId" name="technicianId" required>
-          <option value="">Seleziona tecnico</option>
-          <option *ngFor="let technician of assignments.technicians()" [value]="technician.id">{{ technician.name }}</option>
-        </select>
-      </label>
-      <label>Cliente
-        <select [ngModel]="form.customerId" (ngModelChange)="customerChanged($event)" name="customerId">
-          <option value="">Tutti i clienti</option>
-          <option *ngFor="let customer of assignments.customers()" [value]="customer.id">{{ customer.name }}</option>
-        </select>
-      </label>
-      <label>Impianto
-        <select [(ngModel)]="form.plantId" name="plantId" required>
-          <option value="">Seleziona impianto</option>
-          <option *ngFor="let plant of assignments.plants()" [value]="plant.id">{{ plant.customerName }} - {{ plant.code }}</option>
-        </select>
-      </label>
-      <label>Titolo <input [(ngModel)]="form.title" name="title" required /></label>
-      <label>Descrizione <textarea [(ngModel)]="form.description" name="description"></textarea></label>
-      <label>Priorita
-        <select [(ngModel)]="form.priority" name="priority">
-          <option>Alta</option>
-          <option>Media</option>
-          <option>Bassa</option>
-        </select>
-      </label>
-      <label>Scadenza <input type="date" [(ngModel)]="form.dueDate" name="dueDate" /></label>
-      <label>Stato
-        <select [(ngModel)]="form.status" name="status">
-          <option value="assegnata">Assegnata</option>
-          <option value="in_corso">In corso</option>
-        </select>
-      </label>
-      <button class="btn primary" type="submit" [disabled]="assignments.saving()">Crea assegnazione</button>
-    </form>
-  </section>
-
-  <section class="panel">
-    <h2>Attivita assegnate</h2>
-    <article class="assignment-row" *ngFor="let item of assignments.assignments()">
-      <div>
-        <b>{{ item.title }}</b>
-        <p>{{ item.customerName }} - impianto {{ item.plantCode }} - {{ item.technicianName }}</p>
-        <small>{{ item.priority }} · {{ item.status }} · {{ item.dueDate || 'nessuna scadenza' }}</small>
+    <div class="assignments-table" *ngIf="filteredAssignments().length">
+      <div class="assignment-row header-row" aria-hidden="true">
+        <span>Attività</span>
+        <span>Cliente e impianto</span>
+        <span>Assegnatario</span>
+        <span>Stato</span>
+        <span>Priorità e scadenza</span>
+        <span>Azioni</span>
       </div>
-    </article>
-    <p class="empty-state" *ngIf="!assignments.loading() && !assignments.assignments().length">Nessun dato disponibile</p>
+
+      <article class="assignment-row" *ngFor="let item of filteredAssignments()">
+        <div class="main-cell">
+          <b>{{ item.title }}</b>
+          <small>{{ item.code }}</small>
+        </div>
+
+        <div class="main-cell">
+          <b>{{ item.customerName }}</b>
+          <small>Impianto {{ item.plantCode }} · {{ item.address || 'indirizzo non disponibile' }}</small>
+        </div>
+
+        <div class="muted-cell">
+          <span>{{ item.technicianName }}</span>
+        </div>
+
+        <div>
+          <span class="status-pill" [class.success]="statusTone(item.status) === 'success'" [class.warning]="statusTone(item.status) === 'warning'">
+            {{ statusLabel(item.status) }}
+          </span>
+        </div>
+
+        <div class="meta-cell">
+          <span class="priority-pill">{{ item.priority || 'Non indicata' }}</span>
+          <small [class.danger-text]="dueDateTone(item) === 'danger'">
+            {{ item.dueDate ? (item.dueDate | date:'dd/MM/yyyy') : 'Nessuna scadenza' }}
+          </small>
+        </div>
+
+        <div class="row-actions">
+          <button class="btn ghost" type="button" (click)="openDetail(item)">Dettaglio</button>
+        </div>
+      </article>
+    </div>
+
+    <p class="empty-state" *ngIf="!assignments.loading() && !filteredAssignments().length">
+      Nessuna attività corrisponde ai filtri selezionati.
+    </p>
   </section>
+
+  <div class="modal-backdrop" *ngIf="selectedAssignment()" (click)="closeDetail()">
+    <section class="detail-modal" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <p>Dettaglio attività</p>
+          <h3>{{ selectedAssignment()?.title }}</h3>
+        </div>
+        <button class="icon-button" type="button" aria-label="Chiudi dettaglio" (click)="closeDetail()">×</button>
+      </div>
+
+      <dl class="detail-grid">
+        <div>
+          <dt>Codice</dt>
+          <dd>{{ selectedAssignment()?.code }}</dd>
+        </div>
+        <div>
+          <dt>Stato</dt>
+          <dd>{{ statusLabel(selectedAssignment()?.status || '') }}</dd>
+        </div>
+        <div>
+          <dt>Cliente</dt>
+          <dd>{{ selectedAssignment()?.customerName }}</dd>
+        </div>
+        <div>
+          <dt>Impianto</dt>
+          <dd>{{ selectedAssignment()?.plantCode }} · {{ selectedAssignment()?.address }}</dd>
+        </div>
+        <div>
+          <dt>Assegnatario</dt>
+          <dd>{{ selectedAssignment()?.technicianName }}</dd>
+        </div>
+        <div>
+          <dt>Priorità</dt>
+          <dd>{{ selectedAssignment()?.priority || 'Non indicata' }}</dd>
+        </div>
+        <div>
+          <dt>Scadenza</dt>
+          <dd>{{ selectedAssignment()?.dueDate ? (selectedAssignment()?.dueDate | date:'dd/MM/yyyy') : 'Nessuna scadenza' }}</dd>
+        </div>
+        <div>
+          <dt>Creata il</dt>
+          <dd>{{ selectedAssignment()?.createdAt ? (selectedAssignment()?.createdAt | date:'dd/MM/yyyy HH:mm') : 'Non disponibile' }}</dd>
+        </div>
+      </dl>
+
+      <div class="description-block">
+        <span>Descrizione</span>
+        <p>{{ selectedAssignment()?.description || 'Nessuna descrizione disponibile.' }}</p>
+      </div>
+    </section>
+  </div>
 </section>

@@ -26,6 +26,20 @@ export class AssegnazioniCommercialeService {
 
   constructor(private http: HttpClient) {}
 
+  loadAssignmentsOnly(): void {
+    this.loading.set(true);
+    this.error.set('');
+    this.http.get<CommercialAssignment[]>('/api/commerciale/assegnazioni').pipe(
+      catchError(() => {
+        this.error.set('Impossibile caricare le attivita assegnate.');
+        return of([]);
+      })
+    ).subscribe((assignments) => {
+      this.assignments.set(assignments);
+      this.loading.set(false);
+    });
+  }
+
   load(): void {
     this.loading.set(true);
     this.error.set('');

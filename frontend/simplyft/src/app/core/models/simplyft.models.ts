@@ -279,6 +279,7 @@ export interface CommercialCustomer {
   name: string;
   city: string;
   email: string;
+  phone?: string;
 }
 
 export interface CommercialPlantOption {
@@ -286,7 +287,9 @@ export interface CommercialPlantOption {
   customerId: string;
   customerName: string;
   code: string;
+  serial?: string;
   address: string;
+  city?: string;
   type: string;
 }
 
