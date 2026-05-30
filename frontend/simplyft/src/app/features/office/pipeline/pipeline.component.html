@@ -2,12 +2,105 @@
   <div class="section-head">
     <div>
       <p>Pipeline</p>
-      <h2>Pipeline preventivi</h2>
+      <h2>Pipeline commerciale</h2>
     </div>
-    <span>Kanban commerciale aggiornato dai rilievi campo</span>
+    <div class="head-metrics" aria-label="Sintesi pipeline">
+      <span><b>{{ filteredQuotes().length }}</b> pratiche</span>
+      <span><b>{{ openCount() }}</b> aperte</span>
+      <span><b>{{ totalValue() | currency:'EUR':'symbol':'1.0-0' }}</b> valore</span>
+    </div>
   </div>
 
-  <section class="kanban-panel">
-    <app-kanban-board [columns]="pipeline.grouped()" />
+  <div class="state-message" *ngIf="pipeline.quotes.loading()">Caricamento pipeline...</div>
+  <div class="state-message error" *ngIf="pipeline.quotes.error()">{{ pipeline.quotes.error() }}</div>
+
+  <section class="pipeline-panel">
+    <div class="toolbar">
+      <label class="search-field">
+        <span>Cerca</span>
+        <input
+          [ngModel]="query()"
+          (ngModelChange)="query.set($event)"
+          placeholder="Cliente, impianto, assegnatario, stato..."
+        />
+      </label>
+
+      <label>
+        <span>Priorità</span>
+        <select [ngModel]="priority()" (ngModelChange)="priority.set($event)">
+          <option value="all">Tutte</option>
+          <option value="Alta">Alta</option>
+          <option value="Media">Media</option>
+          <option value="Bassa">Bassa</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Assegnatario</span>
+        <select [ngModel]="assignee()" (ngModelChange)="assignee.set($event)">
+          <option value="all">Tutti</option>
+          <option *ngFor="let option of assigneeOptions()" [value]="option">{{ option }}</option>
+        </select>
+      </label>
+
+      <button class="btn light" type="button" (click)="clearFilters()">Reset</button>
+    </div>
+
+    <div class="kanban">
+      <section class="kanban-column" *ngFor="let column of grouped()">
+        <header class="column-head">
+          <div>
+            <h3>{{ column.title }}</h3>
+            <small>{{ column.totalValue | currency:'EUR':'symbol':'1.0-0' }}</small>
+          </div>
+          <span>{{ column.quotes.length }}</span>
+        </header>
+
+        <article class="pipeline-card" *ngFor="let quote of column.quotes">
+          <div class="card-topline">
+            <app-status-badge
+              [label]="quote.priority"
+              [tone]="quote.priority === 'Alta' ? 'danger' : quote.priority === 'Media' ? 'warning' : 'info'"
+            />
+            <span>{{ quote.lastUpdated | date:'dd/MM/yyyy' }}</span>
+          </div>
+
+          <h4>{{ quote.customer }}</h4>
+          <p>Impianto {{ quote.plantCode }}</p>
+
+          <dl>
+            <div>
+              <dt>Stato</dt>
+              <dd>{{ quote.statusLabel }}</dd>
+            </div>
+            <div>
+              <dt>Valore</dt>
+              <dd>{{ quote.hasQuote ? (quote.estimatedValue | currency:'EUR':'symbol':'1.0-0') : 'Da stimare' }}</dd>
+            </div>
+            <div>
+              <dt>Assegnatario</dt>
+              <dd>{{ quote.assignee || quote.technicianName || 'Non assegnato' }}</dd>
+            </div>
+            <div>
+              <dt>Ultima attività</dt>
+              <dd>{{ quote.lastUpdated | date:'dd/MM/yyyy HH:mm' }}</dd>
+            </div>
+          </dl>
+
+          <div class="card-footer">
+            <app-status-badge [label]="quote.technicalValidation" [tone]="validationTone(quote)" />
+            <button class="open-btn" type="button" (click)="open(quote)" [disabled]="pipeline.quotes.actionLoading() === quote.inspectionId">
+              {{ quote.hasQuote ? 'Apri' : 'Crea' }}
+            </button>
+          </div>
+        </article>
+
+        <p class="column-empty" *ngIf="!pipeline.quotes.loading() && !column.quotes.length">Nessuna pratica in questa fase.</p>
+      </section>
+    </div>
+
+    <p class="empty-state" *ngIf="!pipeline.quotes.loading() && !filteredQuotes().length">
+      Nessuna pratica corrisponde ai filtri selezionati.
+    </p>
   </section>
 </section>

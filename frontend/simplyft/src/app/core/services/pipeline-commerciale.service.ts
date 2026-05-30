@@ -18,7 +18,7 @@ export class PipelineCommercialeService {
     const items = this.quotes.quotes();
     return this.columns.map((column) => ({
       ...column,
-      quotes: items.filter((quote) => this.pipelineStatus(quote) === column.status)
+      quotes: items.filter((quote) => this.statusFor(quote) === column.status)
     }));
   });
 
@@ -28,7 +28,7 @@ export class PipelineCommercialeService {
     this.quotes.load();
   }
 
-  private pipelineStatus(item: CommercialQuoteListItem): PipelineStatus {
+  statusFor(item: CommercialQuoteListItem): PipelineStatus {
     if (!item.hasQuote) {
       return 'to-review';
     }

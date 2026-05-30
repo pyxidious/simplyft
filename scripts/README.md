@@ -58,6 +58,12 @@ Reload only the frontend with:
 ./reload-frontend.sh
 ```
 
+Update only the frontend Docker service after Angular changes:
+
+```bash
+./scripts/update-frontend.sh
+```
+
 Manage the Angular frontend container with content-change aware rebuilds:
 
 ```bash
@@ -70,13 +76,14 @@ Manage the Angular frontend container with content-change aware rebuilds:
 If needed, make it executable first:
 
 ```bash
-chmod +x frontend-angular.sh reload-frontend.sh scripts/start-environment.sh scripts/stop-environment.sh scripts/start-ngrok.sh scripts/stop-ngrok.sh scripts/reload-frontend.sh
+chmod +x frontend-angular.sh reload-frontend.sh scripts/start-environment.sh scripts/stop-environment.sh scripts/start-ngrok.sh scripts/stop-ngrok.sh scripts/reload-frontend.sh scripts/update-frontend.sh
 ```
 
 ## Options
 
 - Windows: `-NoBuild` skips image rebuilds.
 - Windows: `-FollowLogs` follows Docker Compose logs after startup.
+- Windows frontend update: `.\scripts\update-frontend.ps1` rebuilds and recreates only the `frontend` service; `-FollowLogs` follows only frontend logs.
 - Windows: `-Volumes` removes Docker Compose volumes while stopping, deleting local database/model data.
 - Linux/macOS: `--no-build` skips image rebuilds.
 - Linux/macOS: `--follow-logs` follows Docker Compose logs after startup.
@@ -84,6 +91,7 @@ chmod +x frontend-angular.sh reload-frontend.sh scripts/start-environment.sh scr
 - ngrok start: `--port PORT` exposes a different local port; `--no-start` skips starting Docker Compose; `--no-build` starts Docker Compose without rebuilding images.
 - ngrok stop: `--environment` also stops Docker Compose; `--volumes` also removes Docker Compose volumes.
 - Frontend reload: `--follow-logs` follows only frontend logs after recreation.
+- Frontend update: `--follow-logs` follows only frontend logs after recreating the `frontend` service with `--no-deps`.
 - Angular frontend manager: `--force` rebuilds even without content changes; `--follow-logs` follows frontend logs; `--interval SECONDS` changes watch polling.
 
 The start scripts create `.env` from `.env.example` when `.env` does not exist, then run Docker Compose in detached mode. The stop scripts run `docker compose down` by default.
